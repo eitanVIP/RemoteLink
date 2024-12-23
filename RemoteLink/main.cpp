@@ -133,7 +133,7 @@ int main(int, char**)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        RemoteLink::RenderUI();
+        Application::Update();
 
         // Rendering
         ImGui::Render();
@@ -150,6 +150,8 @@ int main(int, char**)
     EMSCRIPTEN_MAINLOOP_END;
 #endif
 
+    Application::Close();
+    
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();

@@ -1,5 +1,6 @@
 #pragma once
 
-namespace RemoteLink {
-	void RenderUI();
+namespace Application {
+	void Update();
+	void Close();
 }
