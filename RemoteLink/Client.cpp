@@ -5,106 +5,82 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
-#pragma comment(lib, "Ws2_32.lib")
+#include "Application.h"
+#include "Utils.h"
 
 using namespace std;
 
 namespace Client
 {
-    WSADATA wsaData;
     SOCKET sock = INVALID_SOCKET;
-
-    int Connect(const char* hostAddr, int port)
+    bool connected = false;
+    
+    int Setup()
     {
-        // Initialize Winsock
-        WORD wVersionRequested = MAKEWORD(2, 2);
-        int wsaerr = WSAStartup(wVersionRequested, &wsaData);
-
-        if (wsaerr != 0)
+        //Startup WSA
+        WSADATA wsaData;
+        int WSAerr = WSAStartup(MAKEWORD(2, 2), &wsaData);
+        if (WSAerr != 0)
         {
-            cerr << "The Winsock DLL was not found or failed to load. Error: " << wsaerr << endl;
-            return -1;
+            Application::Log("[Client] WSAStartup failed with error: " + Utils::GetWSAErrorString());
+            return 1;
         }
 
-        cout << "The Winsock DLL loaded successfully.\n";
-        cout << "Status: " << wsaData.szSystemStatus << endl;
-
-        // Create a socket
-        sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        Application::Log("[Client] WSAStartup successful");
+        return 0;
+    }
+    
+    int Connect(string address, int port)
+    {
+        //Create the socket
+        sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
         if (sock == INVALID_SOCKET)
         {
-            cerr << "Socket creation failed. Error: " << WSAGetLastError() << endl;
-            WSACleanup();
-            return -1;
+            Application::Log("[Client] Invalid socket: " + Utils::GetWSAErrorString());
+            return 1;
         }
 
-        // Resolve the server address and port
-        sockaddr_in serverAddr = {};
-        serverAddr.sin_family = AF_INET;
-        serverAddr.sin_port = htons(port);
+        //Create wsa address struct
+        sockaddr_in addr;
+        //Using IPv4
+        addr.sin_family = AF_INET;
+        //Convert string address to network presentation
+        inet_pton(AF_INET, address.c_str(), &addr.sin_addr.s_addr);
+        //Convert port to network presentation
+        addr.sin_port = htons(port);
 
-        if (inet_pton(AF_INET, hostAddr, &serverAddr.sin_addr) <= 0)
+        //Connect to address
+        int err = connect(sock, (sockaddr*)&addr, sizeof(addr));
+        if (err != 0)
         {
-            cerr << "Invalid address or address not supported: " << hostAddr << endl;
-            closesocket(sock);
-            WSACleanup();
-            return -1;
+            Application::Log("[Client] Connection error: " + Utils::GetWSAErrorString());
+            return 1;
         }
 
-        // Connect to the server
-        if (connect(sock, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) == SOCKET_ERROR)
-        {
-            cerr << "Connection failed. Error: " << WSAGetLastError() << endl;
-            closesocket(sock);
-            WSACleanup();
-            return -1;
-        }
-
-        cout << "Connected to the server at " << hostAddr << ":" << port << endl;
-
+        connected = true;
+        Application::Log("[Client] Connected successfuly");
         return 0;
     }
 
-    int SendData(const string& data)
+    void SendData(const string& data)
     {
-        if (sock == INVALID_SOCKET)
-        {
-            cerr << "Socket is not connected!" << endl;
-            return -1;
-        }
-
-        int result = send(sock, data.c_str(), static_cast<int>(data.length()), 0);
-        if (result == SOCKET_ERROR)
-        {
-            cerr << "Failed to send data. Error: " << WSAGetLastError() << endl;
-            return -1;
-        }
-
-        cout << "Data sent: " << data << endl;
-        return result;
+        send(sock, data.c_str(), data.size(), 0);
     }
 
-    int Update()
+    void Update()
     {
-        POINT mousePos;
-        if (GetCursorPos(&mousePos))
-            return SendData("x: " + to_string(mousePos.x) + ", y: " + to_string(mousePos.y));
-        
-        return 0;
+        SendData("Sigma");
     }
 
     bool IsConnected()
     {
-        return sock != INVALID_SOCKET;
+        return connected;
     }
 
     void Disconnect()
     {
-        if (sock != INVALID_SOCKET)
-        {
-            closesocket(sock);
-            sock = INVALID_SOCKET;
-        }
+        connected = false;
+        closesocket(sock);
         WSACleanup();
     }
 }

@@ -1,44 +1,58 @@
 #include "Application.h"
+
+#include <iostream>
+
 #include "Client.h"
 #include "Server.h"
 #include "imgui.h"
 
 using namespace ImGui;
+using namespace std;
 
 #define PORT 8080
 
 namespace Application {
-	bool isServer = false;
+	string log = "";
+	
+	void Start()
+	{
+		Server::Start(PORT);
+	}
 	
 	void Update() {
 		DockSpaceOverViewport(0);
 
         Begin("Settings");
-		SeparatorText("Server");
-		if (Button("Start"))
-		{
-			isServer = true;
-			Server::Start(PORT);
-		}
-
-		SeparatorText("Client");
+		SeparatorText("Connect To Others");
 		static char addr[20];
-		InputText("Operator Address", addr, IM_ARRAYSIZE(addr));
+		InputText("Address", addr, IM_ARRAYSIZE(addr));
+		string address = addr;
 		
 		if (Button("Connect"))
-		{
-			isServer = false;
-			Client::Connect(addr, PORT);
-		}
+			Client::Connect(address, PORT);
+
+		SeparatorText("Incoming Requests");
+
+		SeparatorText("Logs");
+		if (!log.empty())
+			Text(log.c_str());
 		End();
 
 		Begin("Screen");
 		End();
 
-		if (isServer && Server::IsInitialized())
-			Server::Update();
-		else if (!isServer && Client::IsConnected())
+		Server::Update();
+		if (Client::IsConnected())
 			Client::Update();
+	}
+
+	void Log(string msg)
+	{
+		cout << msg << endl;
+		if (log.empty())
+			log = msg;
+		else
+			log += "\n" + msg;
 	}
 
 	void Close(){

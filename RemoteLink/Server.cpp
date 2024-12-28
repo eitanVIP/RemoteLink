@@ -3,133 +3,83 @@
 #include <ws2tcpip.h>
 #include <string>
 
+#include "Application.h"
+#include "Utils.h"
+
 #pragma comment(lib, "Ws2_32.lib")
 
 using namespace std;
 
 namespace Server
 {
-    WSADATA wsaData;
-    SOCKET serverSocket = INVALID_SOCKET;
-    SOCKET clientSocket = INVALID_SOCKET;
-    sockaddr_in serverAddr = {};
-    sockaddr_in clientAddr = {};
-    bool isInitialized = false;
-
+    SOCKET listenSock = INVALID_SOCKET;
+    bool isConnected = false;
+    
     int Start(int port)
     {
-        // Init Winsock
-        WORD wVersionRequested = MAKEWORD(2, 2);
-        int wsaerr = WSAStartup(wVersionRequested, &wsaData);
-
-        if (wsaerr != 0)
+        //Startup WSA
+        WSADATA wsaData;
+        int WSAerr = WSAStartup(MAKEWORD(2, 2), &wsaData);
+        if (WSAerr != 0)
         {
-            cerr << "The Winsock DLL was not found or failed to load. Error: " << wsaerr << endl;
-            return -1;
+            Application::Log("[Server] WSAStartup failed with error: " + Utils::GetWSAErrorString());
+            return 1;
+        }
+        Application::Log("[Server] WSAStartup successful");
+
+        //Create the socket
+        listenSock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+        if (listenSock == INVALID_SOCKET)
+        {
+            Application::Log("[Server] Invalid socket: " + Utils::GetWSAErrorString());
+            return 1;
         }
 
-        cout << "The Winsock DLL loaded successfully.\n";
-        cout << "Status: " << wsaData.szSystemStatus << endl;
+        //Set socket to non-blocking mode- doesn't wait for data, if there isn't data it just continues the code
+        u_long mode = 1; // non-blocking mode
+        ioctlsocket(listenSock, FIONBIO, &mode);
 
-        // Create a socket
-        serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-        if (serverSocket == INVALID_SOCKET)
+        //Create wsa address struct
+        sockaddr_in addr;
+        //Using IPv4
+        addr.sin_family = AF_INET;
+        //Convert string address to network presentation
+        addr.sin_addr.s_addr = INADDR_ANY;
+        //Convert port to network presentation
+        addr.sin_port = htons(port);
+
+        //Binding socket to pc's ip address and port
+        int binderr = bind(listenSock, (sockaddr*)&addr, sizeof(addr));
+        if (binderr == SOCKET_ERROR)
         {
-            cerr << "Socket creation failed. Error: " << WSAGetLastError() << endl;
-            WSACleanup();
-            return -1;
+            Application::Log("[Server] Socket did not bind to PC: " + Utils::GetWSAErrorString());
+            return 1;
         }
 
-        // Bind the socket
-        serverAddr.sin_family = AF_INET;
-        serverAddr.sin_port = htons(port);
-        serverAddr.sin_addr.s_addr = INADDR_ANY;
-
-        if (bind(serverSocket, reinterpret_cast<sockaddr*>(&serverAddr), sizeof(serverAddr)) == SOCKET_ERROR)
-        {
-            cerr << "Socket binding failed. Error: " << WSAGetLastError() << endl;
-            closesocket(serverSocket);
-            WSACleanup();
-            return -1;
-        }
-
-        // Start listening
-        if (listen(serverSocket, SOMAXCONN) == SOCKET_ERROR)
-        {
-            cerr << "Socket listen failed. Error: " << WSAGetLastError() << endl;
-            closesocket(serverSocket);
-            WSACleanup();
-            return -1;
-        }
-
-        cout << "Server is listening on port " << port << endl;
-
-        isInitialized = true;
+        Application::Log("[Server] Binded socket to PC successfully");
         return 0;
     }
 
     void Update() {
-        if (!isInitialized)
-            return;
-
-        // Accept a client if not already connected
-        if (clientSocket == INVALID_SOCKET) {
-            int clientAddrLen = sizeof(clientAddr);
-            clientSocket = accept(serverSocket, reinterpret_cast<sockaddr*>(&clientAddr), &clientAddrLen);
-
-            if (clientSocket != INVALID_SOCKET) {
-                // Successfully accepted a client, now we can use clientAddr
-                char clientIP[INET_ADDRSTRLEN];
-                inet_ntop(AF_INET, &clientAddr.sin_addr, clientIP, sizeof(clientIP));
-                cout << "Client connected from IP: " << clientIP << endl;
-            }
-        }
-
-        // If a client is connected, check for data
-        if (clientSocket != INVALID_SOCKET) {
-            char buffer[1024] = {};  // Buffer to store incoming data
-            int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
-
-            if (bytesReceived > 0) {
-                buffer[bytesReceived] = '\0';  // Null-terminate the received data
-                cout << "Received data: " << buffer << endl;
-
-                // Process the received data
-                int number = atoi(buffer);
-                if (number == 42) {
-                    cout << "Received number: 42" << endl;
-                }
-            } else if (bytesReceived == 0) {
-                // Connection closed by client
-                cout << "Client disconnected." << endl;
-                closesocket(clientSocket);
-                clientSocket = INVALID_SOCKET;
-            } else {
-                // Error in receiving data
-                cerr << "Error receiving data: " << WSAGetLastError() << endl;
-            }
-        }
+        char buffer[1024];
+        int data = recv(listenSock, buffer, sizeof(buffer), 0);
+        
+        if (data > 0) {
+            Application::Log("[Server] Packet received");
+        } else if (data == SOCKET_ERROR)
+            if (WSAGetLastError() != WSAEWOULDBLOCK)
+                Application::Log("[Server] recv failed: " + Utils::GetWSAErrorString());
     }
 
     bool IsConnected()
     {
-        return clientSocket != INVALID_SOCKET;
-    }
-
-    bool IsInitialized()
-    {
-        return isInitialized;
+        return isConnected;
     }
 
     void Close()
     {
-        if (clientSocket != INVALID_SOCKET)
-            closesocket(clientSocket);
-
-        if (serverSocket != INVALID_SOCKET)
-            closesocket(serverSocket);
-
+        isConnected = false;
+        closesocket(listenSock);
         WSACleanup();
-        isInitialized = false;
     }
 }

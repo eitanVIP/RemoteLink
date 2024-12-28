@@ -1,9 +1,11 @@
 #pragma once
+#include <string>
 
 namespace Client
 {
-    int Connect(const char* hostAddr, int port);
-    int Update();
+    int Setup();
+    int Connect(std::string address, int port);
+    void Update();
     bool IsConnected();
     void Disconnect();
 }
