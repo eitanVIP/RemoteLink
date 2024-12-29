@@ -29,3 +29,27 @@ void TCPHeader::SetFlagURG(bool val) {
     if (val) flags |= (1 << 5);
     else flags &= ~(1 << 5);
 }
+
+bool TCPHeader::GetFlagFIN() { 
+    return (flags & (1 << 0)) != 0;
+}
+
+bool TCPHeader::GetFlagSYN() { 
+    return (flags & (1 << 1)) != 0;
+}
+
+bool TCPHeader::GetFlagRST() { 
+    return (flags & (1 << 2)) != 0;
+}
+
+bool TCPHeader::GetFlagPSH() { 
+    return (flags & (1 << 3)) != 0;
+}
+
+bool TCPHeader::GetFlagACK() { 
+    return (flags & (1 << 4)) != 0;
+}
+
+bool TCPHeader::GetFlagURG() { 
+    return (flags & (1 << 5)) != 0;
+}

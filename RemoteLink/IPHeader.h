@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-
 struct IPHeader {
     uint8_t version_ihl;       // Version (4 bits) + IHL (4 bits)
     uint8_t tos;               // Type of Service

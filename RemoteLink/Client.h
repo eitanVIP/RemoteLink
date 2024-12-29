@@ -1,11 +1,10 @@
 #pragma once
-#include <string>
+
+#include "IPAddress.h"
 
 namespace Client
 {
-    int Setup();
-    int Connect(std::string address, int port);
-    int SendData(std::string data);
+    int Connect(IPAddress address, int port);
     int Update();
     bool IsConnected();
     void Disconnect();

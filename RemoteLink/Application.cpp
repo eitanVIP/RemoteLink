@@ -1,10 +1,9 @@
 #include "Application.h"
-
 #include <iostream>
-
 #include "Client.h"
 #include "Server.h"
 #include "imgui.h"
+#include <winsock2.h>
 
 using namespace ImGui;
 using namespace std;
@@ -52,8 +51,13 @@ namespace Application {
 			Client::Update();
 	}
 
-	void Log(string msg)
+	void Log(string msg, BOOL isServer)
 	{
+		if (isServer == TRUE)
+			msg = "[Server] " + msg;
+		else if (isServer == FALSE)
+			msg = "[Client] " + msg;
+		
 		cout << msg << endl;
 		if (log.empty())
 			log = msg;

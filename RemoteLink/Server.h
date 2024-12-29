@@ -3,8 +3,7 @@
 namespace Server
 {
     int Start(int port);
-    void Update();
+    int Update();
     bool IsConnected();
-    bool IsInitialized();
     void Close();
 }

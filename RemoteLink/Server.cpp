@@ -5,6 +5,7 @@
 
 #include "Application.h"
 #include "TCPHeader.h"
+#include "TCPNetwork.h"
 #include "Utils.h"
 
 #pragma comment(lib, "Ws2_32.lib")
@@ -13,79 +14,50 @@ using namespace std;
 
 namespace Server
 {
-    SOCKET listenSock = INVALID_SOCKET;
-    bool isConnected = false;
+    SOCKET sock = INVALID_SOCKET;
+    bool connected = false;
+    TCPHeader tcpHeader;
 
     int Start(int port)
     {
-        //Startup WSA
-        WSADATA wsaData;
-        int WSAerr = WSAStartup(MAKEWORD(2, 2), &wsaData);
-        if (WSAerr != 0)
-        {
-            Application::Log("[Server] WSAStartup failed with error: " + Utils::GetWSAErrorString());
-            return 1;
-        }
-        Application::Log("[Server] WSAStartup successful");
+        Utils::CreateSocket(sock, true);
 
-        //Create the socket
-        listenSock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
-        if (listenSock == INVALID_SOCKET)
-        {
-            Application::Log("[Server] Invalid socket: " + Utils::GetWSAErrorString());
-            return 1;
-        }
-
-        //Set socket to non-blocking mode- doesn't wait for data, if there isn't data it just continues the code
-        u_long mode = 1; // non-blocking mode
-        ioctlsocket(listenSock, FIONBIO, &mode);
-
-        //Set socket option to not automatically add tpc/ip header data
-        BOOL optval = TRUE;
-        setsockopt(listenSock, IPPROTO_IP, IP_HDRINCL, reinterpret_cast<const char*>(&optval), sizeof(optval));
-
-        //Create wsa address struct
-        sockaddr_in addr;
-        //Using IPv4
-        addr.sin_family = AF_INET;
-        //Convert string address to network presentation
+        // sockaddr_in addr = Utils::StringToAddress("0.0.0.0", port);
+        // addr.sin_addr.s_addr = INADDR_ANY;
+        sockaddr_in addr = IPAddress("0.0.0.0").GetAsNetworkStruct();
         addr.sin_addr.s_addr = INADDR_ANY;
-        //Convert port to network presentation
         addr.sin_port = htons(port);
 
         //Binding socket to pc's ip address and port
-        int binderr = bind(listenSock, (sockaddr*)&addr, sizeof(addr));
+        int binderr = bind(sock, (sockaddr*)&addr, sizeof(addr));
         if (binderr == SOCKET_ERROR)
         {
-            Application::Log("[Server] Socket did not bind to PC: " + Utils::GetWSAErrorString());
+            Application::Log("Socket did not bind to PC: " + Utils::GetWSAErrorString(), TRUE);
             return 1;
         }
+        Application::Log("Socket bound to PC successfully", TRUE);
+        
+        if (TCPNetwork::ServerConnectionDance(sock, tcpHeader, port) != 0)
+            return 1;
 
-        Application::Log("[Server] Bound socket to PC successfully");
+        connected = true;
+        Application::Log("Connected successfuly", TRUE);
         return 0;
     }
 
-    void Update() {
-        char buffer[1024];
-        int err = recv(listenSock, buffer, sizeof(buffer), 0);
-        
-        //If no error occured, err is equal to the amount of bytes received
-        if (err > 0)
-            Application::Log("[Server] " + std::to_string(err) + " bytes received: " + buffer);
-        else if (err == SOCKET_ERROR)
-            if (WSAGetLastError() != WSAEWOULDBLOCK)
-                Application::Log("[Server] Receiving failed: " + Utils::GetWSAErrorString());
+    int Update() {
+        return 0;
     }
 
     bool IsConnected()
     {
-        return isConnected;
+        return connected;
     }
 
     void Close()
     {
-        isConnected = false;
-        closesocket(listenSock);
+        connected = false;
+        closesocket(sock);
         WSACleanup();
     }
 }

@@ -19,4 +19,11 @@ struct TCPHeader
     void SetFlagPSH(bool val);
     void SetFlagACK(bool val);
     void SetFlagURG(bool val);
+
+    bool GetFlagFIN();
+    bool GetFlagSYN();
+    bool GetFlagRST();
+    bool GetFlagPSH();
+    bool GetFlagACK();
+    bool GetFlagURG();
 };
