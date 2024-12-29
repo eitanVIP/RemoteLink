@@ -14,9 +14,9 @@ using namespace std;
 namespace Application {
 	string log = "";
 	
-	void Start()
+	int Start()
 	{
-		Server::Start(PORT);
+		return Server::Start(PORT);
 	}
 	
 	void Update() {
@@ -24,12 +24,18 @@ namespace Application {
 
         Begin("Settings");
 		SeparatorText("Connect To Others");
+		
 		static char addr[20];
 		InputText("Address", addr, IM_ARRAYSIZE(addr));
 		string address = addr;
-		
 		if (Button("Connect"))
 			Client::Connect(address, PORT);
+
+		static char dat[20];
+		InputText("Data", dat, IM_ARRAYSIZE(dat));
+		string data = dat;
+		if (Button("Send Data"))
+			Client::SendData(data);
 
 		SeparatorText("Incoming Requests");
 

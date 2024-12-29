@@ -106,7 +106,8 @@ int main(int, char**)
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != nullptr);
     
-    Application::Start();
+    if (Application::Start() == 1)
+        return 1;
 
     // Main loop
 #ifdef __EMSCRIPTEN__

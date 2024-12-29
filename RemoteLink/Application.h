@@ -2,7 +2,7 @@
 #include <string>
 
 namespace Application {
-	void Start();
+	int Start();
 	void Update();
 	void Log(std::string msg);
 	void Close();

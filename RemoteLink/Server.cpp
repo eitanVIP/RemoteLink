@@ -4,6 +4,7 @@
 #include <string>
 
 #include "Application.h"
+#include "TCPHeader.h"
 #include "Utils.h"
 
 #pragma comment(lib, "Ws2_32.lib")
@@ -14,7 +15,7 @@ namespace Server
 {
     SOCKET listenSock = INVALID_SOCKET;
     bool isConnected = false;
-    
+
     int Start(int port)
     {
         //Startup WSA
@@ -39,6 +40,10 @@ namespace Server
         u_long mode = 1; // non-blocking mode
         ioctlsocket(listenSock, FIONBIO, &mode);
 
+        //Set socket option to not automatically add tpc/ip header data
+        BOOL optval = TRUE;
+        setsockopt(listenSock, IPPROTO_IP, IP_HDRINCL, reinterpret_cast<const char*>(&optval), sizeof(optval));
+
         //Create wsa address struct
         sockaddr_in addr;
         //Using IPv4
@@ -56,19 +61,20 @@ namespace Server
             return 1;
         }
 
-        Application::Log("[Server] Binded socket to PC successfully");
+        Application::Log("[Server] Bound socket to PC successfully");
         return 0;
     }
 
     void Update() {
         char buffer[1024];
-        int data = recv(listenSock, buffer, sizeof(buffer), 0);
+        int err = recv(listenSock, buffer, sizeof(buffer), 0);
         
-        if (data > 0) {
-            Application::Log("[Server] Packet received");
-        } else if (data == SOCKET_ERROR)
+        //If no error occured, err is equal to the amount of bytes received
+        if (err > 0)
+            Application::Log("[Server] " + std::to_string(err) + " bytes received: " + buffer);
+        else if (err == SOCKET_ERROR)
             if (WSAGetLastError() != WSAEWOULDBLOCK)
-                Application::Log("[Server] recv failed: " + Utils::GetWSAErrorString());
+                Application::Log("[Server] Receiving failed: " + Utils::GetWSAErrorString());
     }
 
     bool IsConnected()

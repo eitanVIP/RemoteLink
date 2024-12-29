@@ -6,6 +6,8 @@
 #include <ws2tcpip.h>
 
 #include "Application.h"
+#include "IPHeader.h"
+#include "TCPHeader.h"
 #include "Utils.h"
 
 using namespace std;
@@ -14,6 +16,8 @@ namespace Client
 {
     SOCKET sock = INVALID_SOCKET;
     bool connected = false;
+    TCPHeader tcpHeader;
+    IPHeader ipHeader;
     
     int Setup()
     {
@@ -40,6 +44,14 @@ namespace Client
             return 1;
         }
 
+        //Set socket to non-blocking mode- doesn't wait for data, if there isn't data it just continues the code
+        u_long mode = 1; // non-blocking mode
+        ioctlsocket(sock, FIONBIO, &mode);
+
+        //Set socket option to not automatically add tpc/ip header data
+        BOOL optval = TRUE;
+        setsockopt(sock, IPPROTO_IP, IP_HDRINCL, reinterpret_cast<const char*>(&optval), sizeof(optval));
+
         //Create wsa address struct
         sockaddr_in addr;
         //Using IPv4
@@ -59,17 +71,13 @@ namespace Client
 
         connected = true;
         Application::Log("[Client] Connected successfuly");
+        
         return 0;
     }
 
-    void SendData(const string& data)
+    int Update()
     {
-        send(sock, data.c_str(), data.size(), 0);
-    }
-
-    void Update()
-    {
-        SendData("Sigma");
+        return 0;
     }
 
     bool IsConnected()
