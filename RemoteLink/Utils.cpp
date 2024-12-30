@@ -33,7 +33,7 @@ namespace Utils
             errorMessage = "Unknown error code: " + std::to_string(WSAGetLastError());
         }
 
-        return errorMessage;
+        return errorMessage.substr(0, errorMessage.length() - 2);
     }
 
     int SetupWSA()
@@ -42,23 +42,21 @@ namespace Utils
         int WSAerr = WSAStartup(MAKEWORD(2, 2), &wsaData);
         if (WSAerr != 0)
         {
-            Application::Log("[Server] WSAStartup failed with error: " + GetWSAErrorString());
+            Application::Log("WSAStartup failed with error: " + GetWSAErrorString());
             return 1;
         }
-        Application::Log("[Server] WSAStartup successful");
+        
+        Application::Log("WSAStartup successful");
+        return 0;
     }
 
-    int CreateSocket(SOCKET &sock, bool isServer)
+    int CreateSocket(SOCKET* sock, BOOL isServer)
     {
         //Create the socket
-        sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
-        if (sock == INVALID_SOCKET)
+        *sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+        if (*sock == INVALID_SOCKET)
         {
-            if (isServer)
-                Application::Log("[Server] Invalid socket: " + GetWSAErrorString());
-            else
-                Application::Log("[Client] Invalid socket: " + GetWSAErrorString());
-            
+            Application::Log("Invalid socket: " + GetWSAErrorString(), isServer);
             return 1;
         }
 
@@ -68,7 +66,10 @@ namespace Utils
 
         //Set socket option to not automatically add tpc/ip header data
         BOOL optval = TRUE;
-        setsockopt(sock, IPPROTO_IP, IP_HDRINCL, reinterpret_cast<const char*>(&optval), sizeof(optval));
+        setsockopt(*sock, IPPROTO_IP, IP_HDRINCL, reinterpret_cast<const char*>(&optval), sizeof(optval));
+
+        Application::Log("Socket created", isServer);
+        return 0;
     }
 
     // sockaddr_in StringToAddress(std::string address, int port)
@@ -88,18 +89,43 @@ namespace Utils
     IPAddress GetLocalIP()
     {
         char hostname[256];
+
+        // Get the hostname of the local machine
         if (gethostname(hostname, sizeof(hostname)) != 0) {
+            Application::Log("Failed to get local host name");
             return IPAddress(0);  // Error, return invalid IP
         }
+
+        struct addrinfo hints = {};
+        hints.ai_family = AF_INET;  // Only IPv4 addresses
+        hints.ai_socktype = SOCK_STREAM;
 
         struct addrinfo* result = nullptr;
-        if (getaddrinfo(hostname, nullptr, nullptr, &result) != 0) {
+        if (getaddrinfo(hostname, nullptr, &hints, &result) != 0) {
+            Application::Log("Failed to get local IP from host name");
             return IPAddress(0);  // Error, return invalid IP
         }
 
-        sockaddr_in* sa = reinterpret_cast<sockaddr_in*>(result->ai_addr);
+        // Traverse the addrinfo results to find a valid IPv4 address
+        sockaddr_in* sa = nullptr;
+        for (struct addrinfo* p = result; p != nullptr; p = p->ai_next) {
+            if (p->ai_family == AF_INET) {  // Only process IPv4 addresses
+                sa = reinterpret_cast<sockaddr_in*>(p->ai_addr);
+                break;
+            }
+        }
+
+        if (sa == nullptr) {
+            Application::Log("No valid IPv4 address found");
+            freeaddrinfo(result);  // Clean up
+            return IPAddress(0);  // Error, return invalid IP
+        }
+
+        // Convert sockaddr_in to IPAddress
+        IPAddress ip(*sa);
         freeaddrinfo(result);  // Clean up
 
-        return IPAddress(ntohl(sa->sin_addr.s_addr));  // Convert to host byte order
+        Application::Log("Successfully got local IP: " + ip.GetAsString());
+        return ip;
     }
 }

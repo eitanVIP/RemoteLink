@@ -1,9 +1,13 @@
 #include "Application.h"
 #include <iostream>
+#include <mutex>
+#include <thread>
+
 #include "Client.h"
 #include "Server.h"
 #include "imgui.h"
 #include <winsock2.h>
+#include "Utils.h"
 
 using namespace ImGui;
 using namespace std;
@@ -12,10 +16,20 @@ using namespace std;
 
 namespace Application {
 	string log = "";
+    mutex mtx;
 	
 	int Start()
 	{
-		return Server::Start(PORT);
+		if (Utils::SetupWSA() != 0)
+			return 1;
+
+		thread serverStart([](int port)
+		{
+			Server::Start(port);
+		}, PORT);
+		serverStart.detach();
+		
+		return 0;
 	}
 	
 	void Update() {
@@ -26,17 +40,31 @@ namespace Application {
 		
 		static char addr[20];
 		InputText("Address", addr, IM_ARRAYSIZE(addr));
-		string address = addr;
+		IPAddress address = IPAddress(addr);
 		if (Button("Connect"))
-			Client::Connect(address, PORT);
+		{
+			thread clientConnect([](IPAddress address, int port)
+			{
+				Client::Connect(address, port);
+			}, address, PORT);
+			clientConnect.detach();
+		}
 
-		static char dat[20];
-		InputText("Data", dat, IM_ARRAYSIZE(dat));
-		string data = dat;
-		if (Button("Send Data"))
-			Client::SendData(data);
+		// static char dat[20];
+		// InputText("Data", dat, IM_ARRAYSIZE(dat));
+		// string data = dat;
+		// if (Button("Send Data"))
+		// 	Client::SendData(data);
 
 		SeparatorText("Incoming Requests");
+		IPAddress client;
+		if (Server::IsRequested(&client))
+		{
+			SameLine();
+			Text(client.GetAsString().c_str());
+			if (Button("Accept"))
+				Server::AcceptConnection();
+		}
 
 		SeparatorText("Logs");
 		if (!log.empty())
@@ -46,13 +74,15 @@ namespace Application {
 		Begin("Screen");
 		End();
 
-		Server::Update();
-		if (Client::IsConnected())
-			Client::Update();
+		// Server::Update();
+		// if (Client::IsConnected())
+		// 	Client::Update();
 	}
 
 	void Log(string msg, BOOL isServer)
 	{
+		mtx.lock();
+		
 		if (isServer == TRUE)
 			msg = "[Server] " + msg;
 		else if (isServer == FALSE)
@@ -63,6 +93,8 @@ namespace Application {
 			log = msg;
 		else
 			log += "\n" + msg;
+
+		mtx.unlock();
 	}
 
 	void Close(){

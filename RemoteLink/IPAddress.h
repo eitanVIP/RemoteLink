@@ -13,6 +13,7 @@ private:
     uint32_t ipBinary;
 
 public:
+    IPAddress();
     IPAddress(string IP);
     IPAddress(sockaddr_in IP);
     IPAddress(uint32_t IP);

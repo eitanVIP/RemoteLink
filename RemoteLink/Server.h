@@ -3,7 +3,9 @@
 namespace Server
 {
     int Start(int port);
-    int Update();
+    bool IsRequested(IPAddress* client);
+    int AcceptConnection();
     bool IsConnected();
+    int Update();
     void Close();
 }

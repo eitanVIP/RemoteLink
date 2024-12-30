@@ -149,6 +149,7 @@
     <ClCompile Include="imgui\imgui_tables.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="TCPHeader.cpp" />
     <ClCompile Include="IPAddress.cpp" />
     <ClCompile Include="Server.cpp" />
     <ClCompile Include="TCPNetwork.cpp" />
@@ -169,7 +170,6 @@
     <ClInclude Include="IPHeader.h" />
     <ClInclude Include="IPAddress.h" />
     <ClInclude Include="Server.h" />
-    <ClInclude Include="TCPHeader.cpp" />
     <ClInclude Include="TCPHeader.h" />
     <ClInclude Include="TCPNetwork.h" />
     <ClInclude Include="Utils.h" />

@@ -10,7 +10,7 @@ namespace Utils
 {
     string GetWSAErrorString();
     int SetupWSA();
-    int CreateSocket(SOCKET &sock, bool isServer);
+    int CreateSocket(SOCKET* sock, BOOL isServer);
     // sockaddr_in StringToAddress(string address, int port);
     IPAddress GetLocalIP();
 }

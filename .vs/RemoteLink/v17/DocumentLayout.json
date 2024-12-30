@@ -1,69 +1,12 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Users\\eitan\\Documents\\Projects\\C\u002B\u002B\\RemoteLink\\",
-  "Documents": [
-    {
-      "AbsoluteMoniker": "D:0:0:{F3BFA126-F768-45E5-A6E8-F20372533774}|RemoteLink\\RemoteLink.vcxproj|C:\\Users\\eitan\\Documents\\Projects\\C\u002B\u002B\\RemoteLink\\RemoteLink\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{F3BFA126-F768-45E5-A6E8-F20372533774}|RemoteLink\\RemoteLink.vcxproj|solutionrelative:RemoteLink\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F3BFA126-F768-45E5-A6E8-F20372533774}|RemoteLink\\RemoteLink.vcxproj|C:\\Users\\eitan\\Documents\\Projects\\C\u002B\u002B\\RemoteLink\\RemoteLink\\Application.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{F3BFA126-F768-45E5-A6E8-F20372533774}|RemoteLink\\RemoteLink.vcxproj|solutionrelative:RemoteLink\\Application.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{F3BFA126-F768-45E5-A6E8-F20372533774}|RemoteLink\\RemoteLink.vcxproj|C:\\Users\\eitan\\Documents\\Projects\\C\u002B\u002B\\RemoteLink\\RemoteLink\\imgui\\imgui_demo.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{F3BFA126-F768-45E5-A6E8-F20372533774}|RemoteLink\\RemoteLink.vcxproj|solutionrelative:RemoteLink\\imgui\\imgui_demo.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    }
-  ],
+  "Documents": [],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
       "VerticalTabListWidth": 256,
-      "DocumentGroups": [
-        {
-          "DockedWidth": 200,
-          "SelectedChildIndex": 0,
-          "Children": [
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "main.cpp",
-              "DocumentMoniker": "C:\\Users\\eitan\\Documents\\Projects\\C\u002B\u002B\\RemoteLink\\RemoteLink\\main.cpp",
-              "RelativeDocumentMoniker": "RemoteLink\\main.cpp",
-              "ToolTip": "C:\\Users\\eitan\\Documents\\Projects\\C\u002B\u002B\\RemoteLink\\RemoteLink\\main.cpp",
-              "RelativeToolTip": "RemoteLink\\main.cpp",
-              "ViewState": "AQIAAFcAAAAAAAAAAAAiwE8AAAAAAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2024-12-23T11:50:07.796Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "Application.cpp",
-              "DocumentMoniker": "C:\\Users\\eitan\\Documents\\Projects\\C\u002B\u002B\\RemoteLink\\RemoteLink\\Application.cpp",
-              "RelativeDocumentMoniker": "RemoteLink\\Application.cpp",
-              "ToolTip": "C:\\Users\\eitan\\Documents\\Projects\\C\u002B\u002B\\RemoteLink\\RemoteLink\\Application.cpp",
-              "RelativeToolTip": "RemoteLink\\Application.cpp",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAA4AAAAIAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2024-12-23T12:16:16.921Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "imgui_demo.cpp",
-              "DocumentMoniker": "C:\\Users\\eitan\\Documents\\Projects\\C\u002B\u002B\\RemoteLink\\RemoteLink\\imgui\\imgui_demo.cpp",
-              "RelativeDocumentMoniker": "RemoteLink\\imgui\\imgui_demo.cpp",
-              "ToolTip": "C:\\Users\\eitan\\Documents\\Projects\\C\u002B\u002B\\RemoteLink\\RemoteLink\\imgui\\imgui_demo.cpp",
-              "RelativeToolTip": "RemoteLink\\imgui\\imgui_demo.cpp",
-              "ViewState": "AQIAAGsFAAAAAAAAAIAwwIIFAAAcAAAA",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2024-12-23T13:15:39.708Z"
-            }
-          ]
-        }
-      ]
+      "DocumentGroups": []
     }
   ]
 }

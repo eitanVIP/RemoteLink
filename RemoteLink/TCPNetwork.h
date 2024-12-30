@@ -11,10 +11,9 @@ using namespace std;
 
 namespace TCPNetwork
 {
-    IPHeader CreateIPHeader(uint32_t srcIP, uint32_t destIP, uint16_t dataLength);
-    TCPHeader CreateInitialTCPHeader(int port);
     int SendData(SOCKET sock, string data, TCPHeader& tcpHeader, IPAddress destIP, BOOL isServer);
-    int RecieveData(SOCKET sock, TCPHeader& tcpHeader, BOOL isServer, string& recievedData, IPAddress& senderIP, int& senderPort);
-    int ClientConnectionDance(SOCKET sock, TCPHeader& tcpHeader, IPAddress destIP, int port);
-    int ServerConnectionDance(SOCKET sock, TCPHeader& tcpHeader, int myPort);
+    int RecieveData(SOCKET sock, TCPHeader& tcpHeader, BOOL isServer, string* recievedData, IPAddress* senderIP, int* senderPort);
+    int ClientHandshake(SOCKET sock, TCPHeader& tcpHeader, IPAddress destIP, int port);
+    int ServerHandshakeStep1(SOCKET sock, TCPHeader& tcpHeader, int port, IPAddress* clientAddress);
+    int ServerHandshakeStep2(SOCKET sock, TCPHeader& tcpHeader, IPAddress clientAddress);
 }

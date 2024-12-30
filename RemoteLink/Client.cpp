@@ -21,7 +21,8 @@ namespace Client
     
     int Connect(IPAddress address, int port)
     {
-        Utils::CreateSocket(sock, false);
+        Utils::CreateSocket(&sock, FALSE);
+        
         // sockaddr_in addr = Utils::StringToAddress(address, port);
         sockaddr_in addr = address.GetAsNetworkStruct();
         addr.sin_port = htons(port);
@@ -30,11 +31,12 @@ namespace Client
         int err = connect(sock, (sockaddr*)&addr, sizeof(addr));
         if (err != 0)
         {
-            Application::Log("[Client] Connection error: " + Utils::GetWSAErrorString());
+            Application::Log("Connection error: " + Utils::GetWSAErrorString(), FALSE);
             return 1;
         }
+        Application::Log("Found server with IP: " + address.GetAsString(), FALSE);
 
-        if (TCPNetwork::ClientConnectionDance(sock, tcpHeader, address, port) != 0)
+        if (TCPNetwork::ClientHandshake(sock, tcpHeader, address, port) != 0)
             return 1;
 
         connected = true;

@@ -8,5 +8,8 @@ C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\imgui\imgui_impl_ope
 C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\imgui\imgui_tables.cpp;C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\x64\Release\imgui_tables.obj
 C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\imgui\imgui_widgets.cpp;C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\x64\Release\imgui_widgets.obj
 C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\main.cpp;C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\x64\Release\main.obj
+C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\TCPHeader.cpp;C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\x64\Release\TCPHeader.obj
+C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\IPAddress.cpp;C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\x64\Release\IPAddress.obj
 C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\Server.cpp;C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\x64\Release\Server.obj
+C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\TCPNetwork.cpp;C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\x64\Release\TCPNetwork.obj
 C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\Utils.cpp;C:\Users\eitan\Documents\Projects\C++\RemoteLink\RemoteLink\x64\Release\Utils.obj

@@ -1,4 +1,6 @@
 #include <iostream>
+#include <mutex>
+#include <queue>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <string>
@@ -15,19 +17,25 @@ using namespace std;
 namespace Server
 {
     SOCKET sock = INVALID_SOCKET;
-    bool connected = false;
     TCPHeader tcpHeader;
+    IPAddress clientAddress;
+    
+    bool connected = false;
+    bool requested = false;
+
+    mutex mtx;
+    queue<string> dataQueue;
 
     int Start(int port)
     {
-        Utils::CreateSocket(sock, true);
-
+        Utils::CreateSocket(&sock, TRUE);
+        
         // sockaddr_in addr = Utils::StringToAddress("0.0.0.0", port);
         // addr.sin_addr.s_addr = INADDR_ANY;
         sockaddr_in addr = IPAddress("0.0.0.0").GetAsNetworkStruct();
         addr.sin_addr.s_addr = INADDR_ANY;
         addr.sin_port = htons(port);
-
+        
         //Binding socket to pc's ip address and port
         int binderr = bind(sock, (sockaddr*)&addr, sizeof(addr));
         if (binderr == SOCKET_ERROR)
@@ -37,15 +45,35 @@ namespace Server
         }
         Application::Log("Socket bound to PC successfully", TRUE);
         
-        if (TCPNetwork::ServerConnectionDance(sock, tcpHeader, port) != 0)
+        if (TCPNetwork::ServerHandshakeStep1(sock, tcpHeader, port, &clientAddress) != 0)
             return 1;
-
-        connected = true;
-        Application::Log("Connected successfuly", TRUE);
+        
+        requested = true;
+        
+        Application::Log("Connection request sent", TRUE);
         return 0;
     }
 
-    int Update() {
+    bool IsRequested(IPAddress* client)
+    {
+        if (requested)
+            *client = clientAddress;
+
+        return requested;
+    }
+
+    int AcceptConnection()
+    {
+        if (!requested)
+            return 1;
+
+        if (TCPNetwork::ServerHandshakeStep2(sock, tcpHeader, clientAddress) != 0)
+            return 1;
+
+        connected = true;
+        requested = false;
+        
+        Application::Log("Connected successfully", TRUE);
         return 0;
     }
 
@@ -54,8 +82,13 @@ namespace Server
         return connected;
     }
 
+    int Update() {
+        return 0;
+    }
+
     void Close()
     {
+        requested = false;
         connected = false;
         closesocket(sock);
         WSACleanup();
