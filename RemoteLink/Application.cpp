@@ -1,33 +1,25 @@
-#include "Application.h"
 #include <iostream>
 #include <mutex>
 #include <thread>
+#include <winsock2.h>
 
+#include "Application.h"
 #include "Client.h"
 #include "Server.h"
 #include "imgui.h"
-#include <winsock2.h>
 #include "Utils.h"
 
 using namespace ImGui;
 using namespace std;
 
-#define PORT 8080
-
 namespace Application {
-	string log = "";
+	string log;
     mutex mtx;
 	
 	int Start()
 	{
 		if (Utils::SetupWSA() != 0)
 			return 1;
-
-		thread serverStart([](int port)
-		{
-			Server::Start(port);
-		}, PORT);
-		serverStart.detach();
 		
 		return 0;
 	}
@@ -40,14 +32,29 @@ namespace Application {
 		
 		static char addr[20];
 		InputText("Address", addr, IM_ARRAYSIZE(addr));
+		static char connectPortStr[6];
+		InputText("Connect Port", connectPortStr, IM_ARRAYSIZE(connectPortStr));
 		IPAddress address = IPAddress(addr);
+		int connectPort = atoi(connectPortStr);
 		if (Button("Connect"))
 		{
 			thread clientConnect([](IPAddress address, int port)
 			{
 				Client::Connect(address, port);
-			}, address, PORT);
+			}, address, connectPort);
 			clientConnect.detach();
+		}
+
+		static char portStr[6];
+		InputText("Port", portStr, IM_ARRAYSIZE(portStr));
+		int port = atoi(portStr);
+		if (Button("Open Server"))
+		{
+			thread serverStart([](int port)
+			{
+				Server::Start(port);
+			}, port);
+			serverStart.detach();
 		}
 
 		// static char dat[20];
@@ -60,8 +67,8 @@ namespace Application {
 		IPAddress client;
 		if (Server::IsRequested(&client))
 		{
-			SameLine();
 			Text(client.GetAsString().c_str());
+			SameLine();
 			if (Button("Accept"))
 				Server::AcceptConnection();
 		}

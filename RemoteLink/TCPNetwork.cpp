@@ -100,11 +100,11 @@ namespace TCPNetwork
         return (uint16_t)~sum;
     }
 
-    void CreateInitialTCPHeader(TCPHeader& header, int port)
+    void CreateInitialTCPHeader(TCPHeader& header, int sourcePort, int destPort)
     {
         //Set the first message tcp header
-        header.source = htons(port);
-        header.dest = htons(port);
+        header.source = htons(sourcePort);
+        header.dest = htons(destPort);
         header.seq = 0;
         header.ack = 0;
         header.flags = 0;
@@ -116,7 +116,7 @@ namespace TCPNetwork
         header.urg_ptr = 0;
     }
     
-    int SendData(SOCKET sock, string data, TCPHeader& tcpHeader, IPAddress destIP, BOOL isServer)
+    int SendData(SOCKET sourceSocket, string data, TCPHeader& sourceTCPHeader, IPAddress destIP, int destPort, BOOL isServer)
     {
         size_t dataLength = data.length();
 
@@ -124,48 +124,66 @@ namespace TCPNetwork
         IPHeader ipHeader = CreateIPHeader(Utils::GetLocalIP(), destIP, dataLength);
 
         //Calculate TCP header checksum
-        tcpHeader.check = CalculateTCPChecksum(&tcpHeader, sizeof(TCPHeader) + dataLength, Utils::GetLocalIP(), destIP);
+        sourceTCPHeader.check = CalculateTCPChecksum(&sourceTCPHeader, sizeof(TCPHeader) + dataLength, Utils::GetLocalIP(), destIP);
         
         // Create a buffer to hold the entire packet (IP header + TCP header + data)
         int packetSize = sizeof(IPHeader) + sizeof(TCPHeader) + dataLength;
-        char *packet = new char[packetSize];
+        char* packet = new char[packetSize];
         
         // Copy IP header into the packet
         memcpy(packet, &ipHeader, sizeof(IPHeader));
 
         // Copy TCP header into the packet (after the IP header)
-        memcpy(packet + sizeof(IPHeader), &tcpHeader, sizeof(TCPHeader));
+        memcpy(Utils::AddToPointer(packet, sizeof(IPHeader)), &sourceTCPHeader, sizeof(TCPHeader));
 
         // Copy the data after the TCP header
-        memcpy(packet + sizeof(IPHeader) + sizeof(TCPHeader), &data[0], dataLength);
+        memcpy(Utils::AddToPointer(packet, sizeof(IPHeader) + sizeof(TCPHeader)), &data[0], dataLength);
 
-        for (int i = 0; i < packetSize; i++)
-        {
-            uint8_t byte = packet[i];
-            char buffer[4]; // Enough to hold "FF\0"
-            snprintf(buffer, sizeof(buffer), "%02X", byte);
-            Application::Log(buffer, isServer);
-        }
+        // for (int i = 0; i < packetSize; i++)
+        // {
+        //     uint8_t byte = packet[i];
+        //     char buffer[4]; // Enough to hold "FF\0"
+        //     snprintf(buffer, sizeof(buffer), "%02X", byte);
+        //     Application::Log(buffer, isServer);
+        // }
+
+        Application::Log("Sent packet: " + Utils::PacketToString(ipHeader, sourceTCPHeader, data));
+        
         //Send data and check for errors
-        int bytesSent = send(sock, packet, packetSize, 0);
+        sockaddr_in addr = destIP.GetAsNetworkStruct();
+        addr.sin_port = htons(destPort);
+        int bytesSent = sendto(sourceSocket, packet, packetSize, 0, (sockaddr*)&addr, sizeof(*(sockaddr*)&addr));
         //If error occured, bytesSent is equal to error
         if (bytesSent > 0)
-            Application::Log(std::to_string(bytesSent) + " bytes sent", isServer);
+            Application::Log(to_string(bytesSent) + " bytes sent", isServer);
         else if (bytesSent == SOCKET_ERROR)
         {
             Application::Log("Sending failed: " + Utils::GetWSAErrorString(), isServer);
             return 1;
         }
 
-        tcpHeader.seq += (dataLength != 0 ? dataLength : 1);
+        sourceTCPHeader.seq += (dataLength != 0 ? dataLength : 1);
 
         return 0;
     }
 
-    int RecieveData(SOCKET sock, TCPHeader& tcpHeader, BOOL isServer, string* recievedData, IPAddress* senderIP, int* senderPort)
+    int ReceiveData(SOCKET receivingSocket, TCPHeader& receivingTCPHeader, string* receivedData, IPAddress* senderIP, int* senderPort, BOOL isServer)
     {
         char buffer[1024];
-        int bytesReceived = recv(sock, buffer, sizeof(buffer), 0);
+        int bytesReceived;
+        if (isServer == TRUE)
+        {
+            sockaddr_in senderAddr;
+            int senderAddrSize = sizeof(senderAddr);
+            bytesReceived = recvfrom(receivingSocket, buffer, sizeof(buffer), 0, (sockaddr*)&senderAddr, &senderAddrSize);
+            *senderIP = IPAddress(senderAddr);
+            *senderPort = ntohs(senderAddr.sin_port);
+        }else
+        {
+            sockaddr_in senderAddr = senderIP->GetAsNetworkStruct();
+            int serverAddrSize = sizeof(senderAddr);
+            bytesReceived = recvfrom(receivingSocket, buffer, sizeof(buffer), 0, (sockaddr*)&senderAddr, &serverAddrSize);
+        }
         
         //If error occured, bytesReceived is equal to error
         if (bytesReceived > 0)
@@ -173,23 +191,22 @@ namespace TCPNetwork
             Application::Log(to_string(bytesReceived) + " bytes received", isServer);
 
             IPHeader receivedIPHeader = *(IPHeader*)&buffer;
-            TCPHeader receivedTcpHeader = *(TCPHeader*)(&buffer + sizeof(IPHeader));
-            char* data = (char*)(&buffer + sizeof(IPHeader) + sizeof(TCPHeader));
+            TCPHeader receivedTcpHeader = *(TCPHeader*)Utils::AddToPointer(&buffer, sizeof(IPHeader));
+            char* data = (char*)Utils::AddToPointer(&buffer, sizeof(IPHeader) + sizeof(TCPHeader));
             int dataLength = bytesReceived - sizeof(IPHeader) - sizeof(TCPHeader);
             string dataString(data, dataLength);
 
-            if (tcpHeader.ack != receivedTcpHeader.seq)
-            {
-                Application::Log("Receiving failed: sequence number does not match acknowledgment number", isServer);
-                return 1;
-            }
+            Application::Log("Received packet: " + Utils::PacketToString(receivedIPHeader, receivedTcpHeader, dataString), isServer);
+            // if (tcpHeader.ack != receivedTcpHeader.seq)
+            // {
+            //     Application::Log("Receiving failed: sequence number does not match acknowledgment number", isServer);
+            //     return 1;
+            // }
 
-            *recievedData = dataString;
-            *senderIP = IPAddress(receivedIPHeader.src_ip);
-            *senderPort = ntohs(receivedTcpHeader.source);
+            *receivedData = dataString;
 
-            tcpHeader.SetFlagACK(true);
-            tcpHeader.ack = receivedTcpHeader.seq + (dataLength != 0 ? dataLength : 1);
+            receivingTCPHeader.SetFlagACK(true);
+            receivingTCPHeader.ack = receivedTcpHeader.seq + (dataLength != 0 ? dataLength : 1);
         }
         else if (bytesReceived == SOCKET_ERROR)
         {
@@ -200,29 +217,27 @@ namespace TCPNetwork
         return 0;
     }
 
-    int ClientHandshake(SOCKET sock, TCPHeader& tcpHeader, IPAddress destIP, int port)
+    int ClientHandshake(SOCKET sock, TCPHeader& tcpHeader, IPAddress destIP, int destPort, int clientPort)
     {
-        CreateInitialTCPHeader(tcpHeader, port);
+        CreateInitialTCPHeader(tcpHeader, clientPort, destPort);
         
-        if (SendData(sock, "", tcpHeader, destIP, FALSE) != 0)
+        if (SendData(sock, "", tcpHeader, destIP, destPort, FALSE) != 0)
         {
-            Application::Log("Connection dance failed at step 1", FALSE);
+            Application::Log("Connection handshake failed at step 1", FALSE);
             return 1;
         }
 
         string data;
-        IPAddress addr;
-        int theirPort;
-        if (RecieveData(sock, tcpHeader, FALSE, &data, &addr, &theirPort) != 0)
+        if (ReceiveData(sock, tcpHeader, &data, &destIP, &destPort, FALSE) != 0)
         {
-            Application::Log("Connection dance failed at step 2", FALSE);
+            Application::Log("Connection handshake failed at step 2", FALSE);
             return 1;
         }
         
         tcpHeader.SetFlagSYN(false);
-        if (SendData(sock, "", tcpHeader, destIP, FALSE) != 0)
+        if (SendData(sock, "", tcpHeader, destIP, destPort, FALSE) != 0)
         {
-            Application::Log("Connection dance failed at step 3", FALSE);
+            Application::Log("Connection handshake failed at step 3", FALSE);
             return 1;
         }
         
@@ -231,35 +246,33 @@ namespace TCPNetwork
         return 0;
     }
 
-    int ServerHandshakeStep1(SOCKET sock, TCPHeader& tcpHeader, int port, IPAddress* clientAddress)
+    int ServerHandshakeStep1(SOCKET sock, TCPHeader& tcpHeader, int serverPort, IPAddress* clientAddress, int* clientPort)
     {
-        CreateInitialTCPHeader(tcpHeader, port);
+        CreateInitialTCPHeader(tcpHeader, serverPort, 0);
 
         string data;
-        int clientPort;
-        if (RecieveData(sock, tcpHeader, TRUE, &data, clientAddress, &clientPort) != 0)
+        if (ReceiveData(sock, tcpHeader, &data, clientAddress, clientPort, TRUE) != 0)
         {
-            Application::Log("Connection dance failed at step 1", TRUE);
+            Application::Log("Connection handshake failed at step 1", TRUE);
             return 1;
         }
+        tcpHeader.dest = *clientPort;
 
         return 0;
     }
 
-    int ServerHandshakeStep2(SOCKET sock, TCPHeader& tcpHeader, IPAddress clientAddress)
+    int ServerHandshakeStep2(SOCKET sock, TCPHeader& tcpHeader, IPAddress clientAddress, int clientPort)
     {
-        if (SendData(sock, "", tcpHeader, clientAddress, TRUE) != 0)
+        if (SendData(sock, "", tcpHeader, clientAddress, clientPort, TRUE) != 0)
         {
-            Application::Log("Connection dance failed at step 2", TRUE);
+            Application::Log("Connection handshake failed at step 2", TRUE);
             return 1;
         }
 
         string data;
-        IPAddress addr;
-        int clientPort;
-        if (RecieveData(sock, tcpHeader, TRUE, &data, &clientAddress, &clientPort) != 0)
+        if (ReceiveData(sock, tcpHeader, &data, &clientAddress, &clientPort, TRUE) != 0)
         {
-            Application::Log("Connection dance failed at step 3", TRUE);
+            Application::Log("Connection handshake failed at step 3", TRUE);
             return 1;
         }
         

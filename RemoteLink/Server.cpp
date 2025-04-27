@@ -19,6 +19,7 @@ namespace Server
     SOCKET sock = INVALID_SOCKET;
     TCPHeader tcpHeader;
     IPAddress clientAddress;
+    int clientPort;
     
     bool connected = false;
     bool requested = false;
@@ -40,17 +41,17 @@ namespace Server
         int binderr = bind(sock, (sockaddr*)&addr, sizeof(addr));
         if (binderr == SOCKET_ERROR)
         {
-            Application::Log("Socket did not bind to PC: " + Utils::GetWSAErrorString(), TRUE);
+            Application::Log("Socket did not bind to PC on port " + to_string(port) + " because: " + Utils::GetWSAErrorString(), TRUE);
             return 1;
         }
-        Application::Log("Socket bound to PC successfully", TRUE);
+        Application::Log("Socket bound to PC successfully on port " + to_string(port), TRUE);
         
-        if (TCPNetwork::ServerHandshakeStep1(sock, tcpHeader, port, &clientAddress) != 0)
+        if (TCPNetwork::ServerHandshakeStep1(sock, tcpHeader, port, &clientAddress, &clientPort) != 0)
             return 1;
         
         requested = true;
         
-        Application::Log("Connection request sent", TRUE);
+        Application::Log("Received Connection request", TRUE);
         return 0;
     }
 
@@ -67,13 +68,13 @@ namespace Server
         if (!requested)
             return 1;
 
-        if (TCPNetwork::ServerHandshakeStep2(sock, tcpHeader, clientAddress) != 0)
+        if (TCPNetwork::ServerHandshakeStep2(sock, tcpHeader, clientAddress, clientPort) != 0)
             return 1;
 
         connected = true;
         requested = false;
         
-        Application::Log("Connected successfully", TRUE);
+        Application::Log("Connection established", TRUE);
         return 0;
     }
 

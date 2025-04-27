@@ -53,7 +53,7 @@ namespace Utils
     int CreateSocket(SOCKET* sock, BOOL isServer)
     {
         //Create the socket
-        *sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+        *sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if (*sock == INVALID_SOCKET)
         {
             Application::Log("Invalid socket: " + GetWSAErrorString(), isServer);
@@ -67,6 +67,9 @@ namespace Utils
         //Set socket option to not automatically add tpc/ip header data
         BOOL optval = TRUE;
         setsockopt(*sock, IPPROTO_IP, IP_HDRINCL, reinterpret_cast<const char*>(&optval), sizeof(optval));
+
+        int opt = 1;
+        setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt));
 
         Application::Log("Socket created", isServer);
         return 0;
@@ -127,5 +130,43 @@ namespace Utils
 
         Application::Log("Successfully got local IP: " + ip.GetAsString());
         return ip;
+    }
+
+    std::string PacketToString(IPHeader ipHeader, TCPHeader tcpHeader, string data)
+    {
+        std::stringstream ss;
+    
+        // Convert IP addresses from uint32_t to readable format
+        uint8_t* src = reinterpret_cast<uint8_t*>(&ipHeader.src_ip);
+        uint8_t* dest = reinterpret_cast<uint8_t*>(&ipHeader.dest_ip);
+    
+        ss << "Packet(";
+    
+        ss << "IP: "
+           << int(src[0]) << "." << int(src[1]) << "." << int(src[2]) << "." << int(src[3])
+           << " -> "
+           << int(dest[0]) << "." << int(dest[1]) << "." << int(dest[2]) << "." << int(dest[3])
+           << ", ";
+    
+        ss << "TCP: " 
+           << ntohs(tcpHeader.source) << " -> " << ntohs(tcpHeader.dest)
+           << ", ";
+    
+        ss << "SEQ: " << ntohl(tcpHeader.seq)
+           << ", ACK: " << ntohl(tcpHeader.ack)
+           << ", Flags: ";
+    
+        if (tcpHeader.GetFlagFIN()) ss << "FIN ";
+        if (tcpHeader.GetFlagSYN()) ss << "SYN ";
+        if (tcpHeader.GetFlagRST()) ss << "RST ";
+        if (tcpHeader.GetFlagPSH()) ss << "PSH ";
+        if (tcpHeader.GetFlagACK()) ss << "ACK ";
+        if (tcpHeader.GetFlagURG()) ss << "URG ";
+
+        ss << ", Data: " << data;
+    
+        ss << ")";
+    
+        return ss.str();
     }
 }
