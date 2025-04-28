@@ -105,8 +105,8 @@ namespace TCPNetwork
         //Set the first message tcp header
         header.source = htons(sourcePort);
         header.dest = htons(destPort);
-        header.seq = 0;
-        header.ack = 0;
+        header.seq = htonl(0);
+        header.ack = htonl(0);
         header.flags = 0;
         //SYN is set because first message
         header.SetFlagSYN(true);
@@ -120,11 +120,14 @@ namespace TCPNetwork
     {
         size_t dataLength = data.length();
 
+        //Get Local IP
+        IPAddress localIP = Utils::GetLocalIP(isServer);
+        
         //Create IP header
-        IPHeader ipHeader = CreateIPHeader(Utils::GetLocalIP(), destIP, dataLength);
+        IPHeader ipHeader = CreateIPHeader(localIP, destIP, dataLength);
 
         //Calculate TCP header checksum
-        sourceTCPHeader.check = CalculateTCPChecksum(&sourceTCPHeader, sizeof(TCPHeader) + dataLength, Utils::GetLocalIP(), destIP);
+        sourceTCPHeader.check = CalculateTCPChecksum(&sourceTCPHeader, sizeof(TCPHeader) + dataLength, localIP, destIP);
         
         // Create a buffer to hold the entire packet (IP header + TCP header + data)
         int packetSize = sizeof(IPHeader) + sizeof(TCPHeader) + dataLength;
@@ -138,31 +141,22 @@ namespace TCPNetwork
 
         // Copy the data after the TCP header
         memcpy(Utils::AddToPointer(packet, sizeof(IPHeader) + sizeof(TCPHeader)), &data[0], dataLength);
-
-        // for (int i = 0; i < packetSize; i++)
-        // {
-        //     uint8_t byte = packet[i];
-        //     char buffer[4]; // Enough to hold "FF\0"
-        //     snprintf(buffer, sizeof(buffer), "%02X", byte);
-        //     Application::Log(buffer, isServer);
-        // }
-
-        Application::Log("Sent packet: " + Utils::PacketToString(ipHeader, sourceTCPHeader, data));
         
         //Send data and check for errors
         sockaddr_in addr = destIP.GetAsNetworkStruct();
         addr.sin_port = htons(destPort);
         int bytesSent = sendto(sourceSocket, packet, packetSize, 0, (sockaddr*)&addr, sizeof(*(sockaddr*)&addr));
+        
         //If error occured, bytesSent is equal to error
         if (bytesSent > 0)
-            Application::Log(to_string(bytesSent) + " bytes sent", isServer);
+            Application::Log("Sent packet: " + Utils::PacketToString(ipHeader, sourceTCPHeader, data) + " " + to_string(bytesSent) + " bytes", isServer);
         else if (bytesSent == SOCKET_ERROR)
         {
             Application::Log("Sending failed: " + Utils::GetWSAErrorString(), isServer);
             return 1;
         }
 
-        sourceTCPHeader.seq += (dataLength != 0 ? dataLength : 1);
+        sourceTCPHeader.seq = htonl(ntohl(sourceTCPHeader.seq) + dataLength != 0 ? dataLength : 1);
 
         return 0;
     }
@@ -188,15 +182,18 @@ namespace TCPNetwork
         //If error occured, bytesReceived is equal to error
         if (bytesReceived > 0)
         {
-            Application::Log(to_string(bytesReceived) + " bytes received", isServer);
-
+            //Get IPHeader from packet
             IPHeader receivedIPHeader = *(IPHeader*)&buffer;
+            
+            //Get TCPHeader from packet
             TCPHeader receivedTcpHeader = *(TCPHeader*)Utils::AddToPointer(&buffer, sizeof(IPHeader));
+
+            //Get data from packet
             char* data = (char*)Utils::AddToPointer(&buffer, sizeof(IPHeader) + sizeof(TCPHeader));
             int dataLength = bytesReceived - sizeof(IPHeader) - sizeof(TCPHeader);
             string dataString(data, dataLength);
 
-            Application::Log("Received packet: " + Utils::PacketToString(receivedIPHeader, receivedTcpHeader, dataString), isServer);
+            Application::Log("Received packet: " + Utils::PacketToString(receivedIPHeader, receivedTcpHeader, dataString) + " " + to_string(bytesReceived) + " bytes", isServer);
             // if (tcpHeader.ack != receivedTcpHeader.seq)
             // {
             //     Application::Log("Receiving failed: sequence number does not match acknowledgment number", isServer);
@@ -206,7 +203,7 @@ namespace TCPNetwork
             *receivedData = dataString;
 
             receivingTCPHeader.SetFlagACK(true);
-            receivingTCPHeader.ack = receivedTcpHeader.seq + (dataLength != 0 ? dataLength : 1);
+            receivingTCPHeader.ack = htonl(ntohl(receivedTcpHeader.seq) + (dataLength != 0 ? dataLength : 1));
         }
         else if (bytesReceived == SOCKET_ERROR)
         {

@@ -72,18 +72,22 @@ namespace Application {
 			if (Button("Accept"))
 				Server::AcceptConnection();
 		}
-
+		
 		SeparatorText("Logs");
 		if (!log.empty())
 			Text(log.c_str());
 		End();
 
 		Begin("Screen");
+		SeparatorText("Chat");
+		static char message[25];
+		InputText("Message", message, IM_ARRAYSIZE(message));
+		if (Button("Send Message"))
+		{
+			if (Client::IsConnected())
+				Client::SendMessageToServer(message);
+		}
 		End();
-
-		// Server::Update();
-		// if (Client::IsConnected())
-		// 	Client::Update();
 	}
 
 	void Log(string msg, BOOL isServer)

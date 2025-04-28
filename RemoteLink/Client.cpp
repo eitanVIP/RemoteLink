@@ -18,12 +18,15 @@ namespace Client
     SOCKET sock = INVALID_SOCKET;
     bool connected = false;
     TCPHeader tcpHeader;
+    IPAddress serverAddress;
+    int serverPort;
     
     int Connect(IPAddress address, int port)
     {
         Utils::CreateSocket(&sock, FALSE);
-        
-        // sockaddr_in addr = Utils::StringToAddress(address, port);
+
+        serverAddress = address;
+        serverPort = port;
         sockaddr_in addr = address.GetAsNetworkStruct();
         addr.sin_port = htons(port);
         
@@ -52,6 +55,11 @@ namespace Client
     bool IsConnected()
     {
         return connected;
+    }
+
+    int SendMessageToServer(string message)
+    {
+        return TCPNetwork::SendData(sock, message, tcpHeader, serverAddress, serverPort, FALSE);
     }
 
     void Disconnect()

@@ -1,3 +1,5 @@
+#include "Server.h"
+
 #include <iostream>
 #include <mutex>
 #include <queue>
@@ -30,21 +32,19 @@ namespace Server
     int Start(int port)
     {
         Utils::CreateSocket(&sock, TRUE);
-        
-        // sockaddr_in addr = Utils::StringToAddress("0.0.0.0", port);
+
+        // sockaddr_in addr = IPAddress("0.0.0.0").GetAsNetworkStruct();
         // addr.sin_addr.s_addr = INADDR_ANY;
-        sockaddr_in addr = IPAddress("0.0.0.0").GetAsNetworkStruct();
-        addr.sin_addr.s_addr = INADDR_ANY;
-        addr.sin_port = htons(port);
-        
-        //Binding socket to pc's ip address and port
-        int binderr = bind(sock, (sockaddr*)&addr, sizeof(addr));
-        if (binderr == SOCKET_ERROR)
-        {
-            Application::Log("Socket did not bind to PC on port " + to_string(port) + " because: " + Utils::GetWSAErrorString(), TRUE);
-            return 1;
-        }
-        Application::Log("Socket bound to PC successfully on port " + to_string(port), TRUE);
+        // addr.sin_port = htons(port);
+        //
+        // //Binding socket to pc's ip address and port
+        // int binderr = bind(sock, (sockaddr*)&addr, sizeof(addr));
+        // if (binderr == SOCKET_ERROR)
+        // {
+        //     Application::Log("Socket did not bind to PC on port " + to_string(port) + " because: " + Utils::GetWSAErrorString(), TRUE);
+        //     return 1;
+        // }
+        // Application::Log("Socket bound to PC successfully on port " + to_string(port), TRUE);
         
         if (TCPNetwork::ServerHandshakeStep1(sock, tcpHeader, port, &clientAddress, &clientPort) != 0)
             return 1;
@@ -75,6 +75,13 @@ namespace Server
         requested = false;
         
         Application::Log("Connection established", TRUE);
+
+        thread serverUpdate([]()
+        {
+            while (Update() == 0);
+        });
+        serverUpdate.detach();
+        
         return 0;
     }
 
@@ -84,7 +91,10 @@ namespace Server
     }
 
     int Update() {
-        return 0;
+        string data;
+        IPAddress sender;
+        int senderPort;
+        return TCPNetwork::ReceiveData(sock, tcpHeader, &data, &sender, &senderPort, TRUE);
     }
 
     void Close()

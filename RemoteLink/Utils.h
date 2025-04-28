@@ -13,7 +13,7 @@ namespace Utils
     int SetupWSA();
     int CreateSocket(SOCKET* sock, BOOL isServer);
     // sockaddr_in StringToAddress(string address, int port);
-    IPAddress GetLocalIP();
+    IPAddress GetLocalIP(BOOL isServer);
 
     template<typename T>
     T* AddToPointer(T* pointer, size_t offset)

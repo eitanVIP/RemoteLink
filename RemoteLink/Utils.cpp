@@ -53,7 +53,7 @@ namespace Utils
     int CreateSocket(SOCKET* sock, BOOL isServer)
     {
         //Create the socket
-        *sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        *sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
         if (*sock == INVALID_SOCKET)
         {
             Application::Log("Invalid socket: " + GetWSAErrorString(), isServer);
@@ -65,11 +65,11 @@ namespace Utils
         // ioctlsocket(sock, FIONBIO, &mode);
 
         //Set socket option to not automatically add tpc/ip header data
-        BOOL optval = TRUE;
-        setsockopt(*sock, IPPROTO_IP, IP_HDRINCL, reinterpret_cast<const char*>(&optval), sizeof(optval));
-
         int opt = 1;
-        setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt));
+        setsockopt(*sock, IPPROTO_IP, IP_HDRINCL, reinterpret_cast<const char*>(&opt), sizeof(opt));
+
+        opt = 1;
+        setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&opt), sizeof(opt));
 
         Application::Log("Socket created", isServer);
         return 0;
@@ -89,7 +89,7 @@ namespace Utils
     //     return addr;
     // }
 
-    IPAddress GetLocalIP()
+    IPAddress GetLocalIP(BOOL isServer)
     {
         char hostname[256];
 
@@ -128,7 +128,7 @@ namespace Utils
         IPAddress ip(*sa);
         freeaddrinfo(result);  // Clean up
 
-        Application::Log("Successfully got local IP: " + ip.GetAsString());
+        Application::Log("Successfully got local IP: " + ip.GetAsString(), isServer);
         return ip;
     }
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "IPAddress.h"
 
 namespace Server
 {
