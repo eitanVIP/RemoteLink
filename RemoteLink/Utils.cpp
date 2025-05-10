@@ -1,9 +1,9 @@
 #include "Utils.h"
 
-#include <iostream>
 #include <string>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <mstcpip.h>
 
 #include "Application.h"
 #include "IPAddress.h"
@@ -53,14 +53,14 @@ namespace Utils
     int CreateSocket(SOCKET* sock, BOOL isServer)
     {
         //Create the socket
-        *sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
+        *sock = socket(AF_INET, SOCK_RAW, IPPROTO_IP);
         if (*sock == INVALID_SOCKET)
         {
             Application::Log("Invalid socket: " + GetWSAErrorString(), isServer);
             return 1;
         }
 
-        //Set socket to non-blocking mode- doesn't wait for data, if there isn't data it just continues the code
+        //Set socket to non-blocking mode - doesn't wait for data, if there isn't data it just continues the code
         // u_long mode = 1; // non-blocking mode
         // ioctlsocket(sock, FIONBIO, &mode);
 
@@ -70,6 +70,9 @@ namespace Utils
 
         opt = 1;
         setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&opt), sizeof(opt));
+
+        DWORD dwValue = 1;
+        WSAIoctl(*sock, SIO_RCVALL, &dwValue, sizeof(dwValue), NULL, 0, NULL, NULL, NULL);
 
         Application::Log("Socket created", isServer);
         return 0;

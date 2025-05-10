@@ -33,18 +33,18 @@ namespace Server
     {
         Utils::CreateSocket(&sock, TRUE);
 
-        // sockaddr_in addr = IPAddress("0.0.0.0").GetAsNetworkStruct();
-        // addr.sin_addr.s_addr = INADDR_ANY;
-        // addr.sin_port = htons(port);
-        //
-        // //Binding socket to pc's ip address and port
-        // int binderr = bind(sock, (sockaddr*)&addr, sizeof(addr));
-        // if (binderr == SOCKET_ERROR)
-        // {
-        //     Application::Log("Socket did not bind to PC on port " + to_string(port) + " because: " + Utils::GetWSAErrorString(), TRUE);
-        //     return 1;
-        // }
-        // Application::Log("Socket bound to PC successfully on port " + to_string(port), TRUE);
+        sockaddr_in addr = IPAddress("0.0.0.0").GetAsNetworkStruct();
+        addr.sin_addr.s_addr = INADDR_ANY;
+        addr.sin_port = htons(port);
+        
+        //Binding socket to pc's ip address and port
+        int binderr = bind(sock, (sockaddr*)&addr, sizeof(addr));
+        if (binderr == SOCKET_ERROR)
+        {
+            Application::Log("Socket did not bind to PC on port " + to_string(port) + " because: " + Utils::GetWSAErrorString(), TRUE);
+            return 1;
+        }
+        Application::Log("Socket bound to PC successfully on port " + to_string(port), TRUE);
         
         if (TCPNetwork::ServerHandshakeStep1(sock, tcpHeader, port, &clientAddress, &clientPort) != 0)
             return 1;

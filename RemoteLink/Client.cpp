@@ -39,7 +39,7 @@ namespace Client
         }
         Application::Log("Found server with IP: " + address.GetAsString(), FALSE);
 
-        if (TCPNetwork::ClientHandshake(sock, tcpHeader, address, port, 0) != 0)
+        if (TCPNetwork::ClientHandshake(sock, tcpHeader, address, port, port/*Temporary*/) != 0)
             return 1;
 
         connected = true;

@@ -1,12 +1,37 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Users\\eitan\\Documents\\Projects\\C\u002B\u002B\\RemoteLink\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{F3BFA126-F768-45E5-A6E8-F20372533774}|RemoteLink\\RemoteLink.vcxproj|C:\\Users\\eitan\\Documents\\Projects\\C\u002B\u002B\\RemoteLink\\RemoteLink\\TCPNetwork.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{F3BFA126-F768-45E5-A6E8-F20372533774}|RemoteLink\\RemoteLink.vcxproj|solutionrelative:RemoteLink\\TCPNetwork.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
       "VerticalTabListWidth": 256,
-      "DocumentGroups": []
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "TCPNetwork.cpp",
+              "DocumentMoniker": "C:\\Users\\eitan\\Documents\\Projects\\C\u002B\u002B\\RemoteLink\\RemoteLink\\TCPNetwork.cpp",
+              "RelativeDocumentMoniker": "RemoteLink\\TCPNetwork.cpp",
+              "ToolTip": "C:\\Users\\eitan\\Documents\\Projects\\C\u002B\u002B\\RemoteLink\\RemoteLink\\TCPNetwork.cpp",
+              "RelativeToolTip": "RemoteLink\\TCPNetwork.cpp",
+              "ViewState": "AgIAAOQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2025-04-29T20:06:55.74Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
     }
   ]
 }
