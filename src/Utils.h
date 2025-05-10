@@ -11,11 +11,9 @@
 
 namespace Utils
 {
-    // std::string GetWSAErrorString();
-    // int SetupWSA();
+    std::string GetSocketErrorString();
     int CreateSocket(int* sock, bool isServer);
-    // sockaddr_in StringToAddress(string address, int port);
-    // IPAddress GetLocalIP(bool isServer);
+    IPAddress GetLocalIP(bool isServer);
 
     template<typename T>
     T* AddToPointer(T* pointer, size_t offset)

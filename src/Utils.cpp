@@ -6,58 +6,24 @@
 #include <netinet/in.h>
 #include <iostream>
 #include <sstream>
-#include <string>
 #include <arpa/inet.h>
+#include <sys/socket.h>
+#include <net/ethernet.h>
+#include <ifaddrs.h>
 
 namespace Utils
 {
-    // std::string GetWSAErrorString() {
-    //     char* messageBuffer = nullptr;
-    //
-    //     // Use FormatMessage to get the error string
-    //     DWORD size = FormatMessageA(
-    //         FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-    //         nullptr,
-    //         WSAGetLastError(),
-    //         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
-    //         reinterpret_cast<LPSTR>(&messageBuffer),
-    //         0,
-    //         nullptr);
-    //
-    //     std::string errorMessage;
-    //
-    //     if (size > 0 && messageBuffer != nullptr) {
-    //         errorMessage = messageBuffer;
-    //         // Free the buffer allocated by FormatMessage
-    //         LocalFree(messageBuffer);
-    //     } else {
-    //         errorMessage = "Unknown error code: " + std::to_string(WSAGetLastError());
-    //     }
-    //
-    //     return errorMessage.substr(0, errorMessage.length() - 2);
-    // }
-    //
-    // int SetupWSA()
-    // {
-    //     WSADATA wsaData;
-    //     int WSAerr = WSAStartup(MAKEWORD(2, 2), &wsaData);
-    //     if (WSAerr != 0)
-    //     {
-    //         Application::Log("WSAStartup failed with error: " + GetWSAErrorString());
-    //         return 1;
-    //     }
-    //
-    //     Application::Log("WSAStartup successful");
-    //     return 0;
-    // }
+    std::string GetSocketErrorString() {
+        return strerror(errno);
+    }
 
     int CreateSocket(int* sock, bool isServer)
     {
         //Create the socket
-        *sock = socket(AF_INET, SOCK_RAW, IPPROTO_IP);
+        *sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
         if (*sock < 0)
         {
-            Application::Log("Socket creation failed", isServer);
+            Application::Log("Socket creation failed: " + GetSocketErrorString(), isServer);
             return 1;
         }
 
@@ -79,62 +45,58 @@ namespace Utils
         return 0;
     }
 
-    // sockaddr_in StringToAddress(std::string address, int port)
-    // {
-    //     //Create wsa address struct
-    //     sockaddr_in addr;
-    //     //Using IPv4
-    //     addr.sin_family = AF_INET;
-    //     //Convert string address to network presentation
-    //     inet_pton(AF_INET, address.c_str(), &addr.sin_addr.s_addr);
-    //     //Convert port to network presentation
-    //     addr.sin_port = htons(port);
-    //
-    //     return addr;
-    // }
+    IPAddress GetLocalIP(bool isServer)
+    {
+        struct ifaddrs *interfaces = nullptr;
+        struct ifaddrs *ifa = nullptr;
+        void *tmpAddrPtr = nullptr;
+        string localIP = "";
 
-    // IPAddress GetLocalIP(bool isServer)
-    // {
-    //     char hostname[256];
-    //
-    //     // Get the hostname of the local machine
-    //     if (gethostname(hostname, sizeof(hostname)) != 0) {
-    //         Application::Log("Failed to get local host name");
-    //         return IPAddress(0);  // Error, return invalid IP
-    //     }
-    //
-    //     struct addrinfo hints = {};
-    //     hints.ai_family = AF_INET;  // Only IPv4 addresses
-    //     hints.ai_socktype = SOCK_STREAM;
-    //
-    //     struct addrinfo* result = nullptr;
-    //     if (getaddrinfo(hostname, nullptr, &hints, &result) != 0) {
-    //         Application::Log("Failed to get local IP from host name");
-    //         return IPAddress(0);  // Error, return invalid IP
-    //     }
-    //
-    //     // Traverse the addrinfo results to find a valid IPv4 address
-    //     sockaddr_in* sa = nullptr;
-    //     for (struct addrinfo* p = result; p != nullptr; p = p->ai_next) {
-    //         if (p->ai_family == AF_INET) {  // Only process IPv4 addresses
-    //             sa = reinterpret_cast<sockaddr_in*>(p->ai_addr);
-    //             break;
-    //         }
-    //     }
-    //
-    //     if (sa == nullptr) {
-    //         Application::Log("No valid IPv4 address found");
-    //         freeaddrinfo(result);  // Clean up
-    //         return IPAddress(0);  // Error, return invalid IP
-    //     }
-    //
-    //     // Convert sockaddr_in to IPAddress
-    //     IPAddress ip(*sa);
-    //     freeaddrinfo(result);  // Clean up
-    //
-    //     Application::Log("Successfully got local IP: " + ip.GetAsString(), isServer);
-    //     return ip;
-    // }
+        // Get the list of interfaces
+        if (getifaddrs(&interfaces) == 0)
+        {
+            // Loop through the list of interfaces
+            for (ifa = interfaces; ifa != nullptr; ifa = ifa->ifa_next)
+            {
+                if (ifa->ifa_addr->sa_family == AF_INET) // Check if it's an IPv4 address
+                {
+                    // Get the IP address of the interface
+                    tmpAddrPtr = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+                    char ipStr[INET_ADDRSTRLEN];
+                    inet_ntop(AF_INET, tmpAddrPtr, ipStr, INET_ADDRSTRLEN);
+
+                    // Exclude the loopback address (127.0.0.1)
+                    if (strcmp(ifa->ifa_name, "lo") != 0)
+                    {
+                        localIP = string(ipStr);
+                        break; // Exit after finding the first non-loopback IP
+                    }
+                }
+            }
+        }
+        else
+        {
+            Application::Log("Error getting network interfaces: " + string(strerror(errno)), isServer);
+        }
+
+        // Free the memory allocated by getifaddrs
+        if (interfaces != nullptr)
+        {
+            freeifaddrs(interfaces);
+        }
+
+        if (localIP.empty())
+        {
+            Application::Log("No valid IP address found!", isServer);
+        }
+        else
+        {
+            Application::Log("Local IP address: " + localIP, isServer);
+        }
+
+        // Return the IPAddress object with the found IP address
+        return IPAddress(localIP);  // Assuming IPAddress class constructor accepts a string
+    }
 
     std::string PacketToString(IPHeader ipHeader, TCPHeader tcpHeader, string data)
     {

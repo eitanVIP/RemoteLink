@@ -39,7 +39,7 @@ namespace Server
         int binderr = bind(sock, (sockaddr*)&addr, sizeof(addr));
         if (binderr < 0)
         {
-            Application::Log("Socket did not bind to PC on port " + to_string(port), true);
+            Application::Log("Socket did not bind to PC on port " + to_string(port) + " because: " + Utils::GetSocketErrorString(), true);
             return 1;
         }
         Application::Log("Socket bound to PC successfully on port " + to_string(port), true);

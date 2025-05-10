@@ -3,47 +3,48 @@
 
 IPAddress::IPAddress()
 {
-    IP = "";
-    // Convert the string IP to network byte order and store it in ipStruct
-    inet_pton(AF_INET, IP.c_str(), &ipStruct.sin_addr);  
-    ipStruct.sin_port = 0; // Set port to 0 as we don't need it
+    IP = "0.0.0.0";
+    memset(&ipStruct, 0, sizeof(ipStruct));
     ipStruct.sin_family = AF_INET;
-    
-    ipBinary = *(uint32_t*)&ipStruct.sin_addr;
+    inet_pton(AF_INET, IP.c_str(), &ipStruct.sin_addr);
+    ipStruct.sin_port = 0;
+
+    ipBinary = ipStruct.sin_addr.s_addr;
 }
 
 IPAddress::IPAddress(string ip)
 {
     IP = ip;
-    // Convert the string IP to network byte order and store it in ipStruct
-    inet_pton(AF_INET, IP.c_str(), &ipStruct.sin_addr);  
-    ipStruct.sin_port = 0; // Set port to 0 as we don't need it
+    memset(&ipStruct, 0, sizeof(ipStruct));
     ipStruct.sin_family = AF_INET;
-    
-    ipBinary = *(uint32_t*)&ipStruct.sin_addr;
+    inet_pton(AF_INET, IP.c_str(), &ipStruct.sin_addr);
+    ipStruct.sin_port = 0;
+
+    ipBinary = ipStruct.sin_addr.s_addr;
 }
 
 IPAddress::IPAddress(sockaddr_in ip)
 {
     ipStruct = ip;
-    ipStruct.sin_port = 0; // Set port to 0 as we don't need it
-    ipBinary = *(uint32_t*)&ipStruct.sin_addr;
-    
-    char buffer[INET_ADDRSTRLEN] = {0}; // Buffer for IPv4 address string
+    ipStruct.sin_port = 0;
+    ipBinary = ipStruct.sin_addr.s_addr;
+
+    char buffer[INET_ADDRSTRLEN] = {};
     inet_ntop(AF_INET, &ipStruct.sin_addr, buffer, INET_ADDRSTRLEN);
-    IP = buffer; // Assign to std::string
+    IP = buffer;
 }
 
 IPAddress::IPAddress(uint32_t ip)
 {
     ipBinary = ip;
-    ipStruct.sin_addr.s_addr = ip;  
-    ipStruct.sin_port = 0; // Set port to 0 as we don't need it
+    memset(&ipStruct, 0, sizeof(ipStruct));
+    ipStruct.sin_addr.s_addr = ip;
     ipStruct.sin_family = AF_INET;
-    
-    char buffer[INET_ADDRSTRLEN] = {0}; // Buffer for IPv4 address string
+    ipStruct.sin_port = 0;
+
+    char buffer[INET_ADDRSTRLEN] = {};
     inet_ntop(AF_INET, &ipStruct.sin_addr, buffer, INET_ADDRSTRLEN);
-    IP = buffer; // Assign to std::string
+    IP = buffer;
 }
 
 string IPAddress::GetAsString()
