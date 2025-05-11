@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Add GLFW (already has its own CMakeLists.txt)
+set(GLFW_BUILD_WAYLAND OFF)
+set(GLFW_BUILD_X11 ON)
 add_subdirectory(libs/GLFW)
 
 # ImGui source files (no CMakeLists.txt in ImGui folder)

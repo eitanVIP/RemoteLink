@@ -20,27 +20,27 @@ namespace Client
     
     int Connect(IPAddress address, int port)
     {
-        Utils::CreateSocket(&sock, false);
-
-        serverAddress = address;
-        serverPort = port;
-        sockaddr_in addr = address.GetAsNetworkStruct();
-        addr.sin_port = htons(port);
-        
-        //Connect to address
-        int err = connect(sock, (sockaddr*)&addr, sizeof(addr));
-        if (err != 0)
-        {
-            Application::Log("Connection error", false);
-            return 1;
-        }
-        Application::Log("Found server with IP: " + address.GetAsString(), false);
-
-        if (TCPNetwork::ClientHandshake(sock, tcpHeader, address, port, port/*Temporary*/) != 0)
-            return 1;
-
-        connected = true;
-        Application::Log("Connection established", false);
+        // Utils::CreateSocket(&sock, false);
+        //
+        // serverAddress = address;
+        // serverPort = port;
+        // sockaddr_in addr = address.GetAsNetworkStruct();
+        // addr.sin_port = htons(port);
+        //
+        // //Connect to address
+        // int err = connect(sock, (sockaddr*)&addr, sizeof(addr));
+        // if (err != 0)
+        // {
+        //     Application::Log("Connection error", false);
+        //     return 1;
+        // }
+        // Application::Log("Found server with IP: " + address.GetAsString(), false);
+        //
+        // if (TCPNetwork::ClientHandshake(sock, tcpHeader, address, port, port/*Temporary*/) != 0)
+        //     return 1;
+        //
+        // connected = true;
+        // Application::Log("Connection established", false);
         return 0;
     }
 

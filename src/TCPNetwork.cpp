@@ -118,111 +118,111 @@ namespace TCPNetwork
     
     int SendData(int sourceSocket, string data, TCPHeader& sourceTCPHeader, IPAddress destIP, int destPort, bool isServer)
     {
-        size_t dataLength = data.length();
-
-        //Get Local IP
-        // IPAddress localIP = Utils::GetLocalIP(isServer);
-        IPAddress localIP = IPAddress();
-
-        //Create IP header
-        IPHeader ipHeader = CreateIPHeader(localIP, destIP, dataLength);
-
-        //Calculate TCP header checksum
-        sourceTCPHeader.check = CalculateTCPChecksum(&sourceTCPHeader, sizeof(TCPHeader) + dataLength, localIP, destIP);
-        
-        // Create a buffer to hold the entire packet (IP header + TCP header + data)
-        int packetSize = sizeof(IPHeader) + sizeof(TCPHeader) + dataLength;
-        char* packet = new char[packetSize];
-        
-        // Copy IP header into the packet
-        memcpy(packet, &ipHeader, sizeof(IPHeader));
-
-        // Copy TCP header into the packet (after the IP header)
-        memcpy(Utils::AddToPointer(packet, sizeof(IPHeader)), &sourceTCPHeader, sizeof(TCPHeader));
-
-        // Copy the data after the TCP header
-        memcpy(Utils::AddToPointer(packet, sizeof(IPHeader) + sizeof(TCPHeader)), &data[0], dataLength);
-        
-        //Send data and check for errors
-        sockaddr_in addr = destIP.GetAsNetworkStruct();
-        addr.sin_port = htons(destPort);
-        int bytesSent = sendto(sourceSocket, packet, packetSize, 0, (sockaddr*)&addr, sizeof(*(sockaddr*)&addr));
-
-        for (int i = 0; i < packetSize; i++)
-            printf("%x\n", packet[i]);
-        
-        //If error occured, bytesSent is equal to error
-        if (bytesSent > 0)
-            Application::Log("Sent packet: " + Utils::PacketToString(ipHeader, sourceTCPHeader, data) + " " + to_string(bytesSent) + " bytes", isServer);
-        else if (bytesSent < 0)
-        {
-            Application::Log("Sending failed", isServer);
-            return 1;
-        }
-
-        sourceTCPHeader.seq = htonl(ntohl(sourceTCPHeader.seq) + dataLength != 0 ? dataLength : 1);
+        // size_t dataLength = data.length();
+        //
+        // //Get Local IP
+        // // IPAddress localIP = Utils::GetLocalIP(isServer);
+        // IPAddress localIP = IPAddress();
+        //
+        // //Create IP header
+        // IPHeader ipHeader = CreateIPHeader(localIP, destIP, dataLength);
+        //
+        // //Calculate TCP header checksum
+        // sourceTCPHeader.check = CalculateTCPChecksum(&sourceTCPHeader, sizeof(TCPHeader) + dataLength, localIP, destIP);
+        //
+        // // Create a buffer to hold the entire packet (IP header + TCP header + data)
+        // int packetSize = sizeof(IPHeader) + sizeof(TCPHeader) + dataLength;
+        // char* packet = new char[packetSize];
+        //
+        // // Copy IP header into the packet
+        // memcpy(packet, &ipHeader, sizeof(IPHeader));
+        //
+        // // Copy TCP header into the packet (after the IP header)
+        // memcpy(Utils::AddToPointer(packet, sizeof(IPHeader)), &sourceTCPHeader, sizeof(TCPHeader));
+        //
+        // // Copy the data after the TCP header
+        // memcpy(Utils::AddToPointer(packet, sizeof(IPHeader) + sizeof(TCPHeader)), &data[0], dataLength);
+        //
+        // //Send data and check for errors
+        // sockaddr_in addr = destIP.GetAsNetworkStruct();
+        // addr.sin_port = htons(destPort);
+        // int bytesSent = sendto(sourceSocket, packet, packetSize, 0, (sockaddr*)&addr, sizeof(*(sockaddr*)&addr));
+        //
+        // for (int i = 0; i < packetSize; i++)
+        //     printf("%x\n", packet[i]);
+        //
+        // //If error occured, bytesSent is equal to error
+        // if (bytesSent > 0)
+        //     Application::Log("Sent packet: " + Utils::PacketToString(ipHeader, sourceTCPHeader, data) + " " + to_string(bytesSent) + " bytes", isServer);
+        // else if (bytesSent < 0)
+        // {
+        //     Application::Log("Sending failed", isServer);
+        //     return 1;
+        // }
+        //
+        // sourceTCPHeader.seq = htonl(ntohl(sourceTCPHeader.seq) + dataLength != 0 ? dataLength : 1);
 
         return 0;
     }
 
     int ReceiveData(int receivingSocket, TCPHeader& receivingTCPHeader, string* receivedData, IPAddress* senderIP, int* senderPort, bool isServer)
     {
-        int receivedTCPHeaderDest = -1;
-        while (receivedTCPHeaderDest != receivingTCPHeader.source)
-        {
-            char buffer[65536];
-            int bytesReceived;
-            if (isServer == true)
-            {
-                sockaddr_in senderAddr;
-                socklen_t senderAddrSize = sizeof(senderAddr);
-                bytesReceived = recvfrom(receivingSocket, buffer, sizeof(buffer), 0, (sockaddr*)&senderAddr, &senderAddrSize);
-                *senderIP = IPAddress(senderAddr);
-                *senderPort = ntohs(senderAddr.sin_port);
-            }else
-            {
-                sockaddr_in senderAddr = senderIP->GetAsNetworkStruct();
-                socklen_t serverAddrSize = sizeof(senderAddr);
-                bytesReceived = recvfrom(receivingSocket, buffer, sizeof(buffer), 0, (sockaddr*)&senderAddr, &serverAddrSize);
-            }
-            
-            //If error occured, bytesReceived is equal to error
-            if (bytesReceived > 0)
-            {
-                //Get IPHeader from the packet
-                IPHeader receivedIPHeader = *(IPHeader*)&buffer;
-                
-                //Get TCPHeader from the packet
-                TCPHeader receivedTCPHeader = *(TCPHeader*)Utils::AddToPointer(&buffer, sizeof(IPHeader));
-                receivedTCPHeaderDest = receivedTCPHeader.dest;
-
-                //Check if the received packet was sent to our port
-                if (receivedTCPHeaderDest != receivingTCPHeader.source)
-                    continue;
-
-                //Get data from packet
-                char* data = (char*)Utils::AddToPointer(&buffer, sizeof(IPHeader) + sizeof(TCPHeader));
-                int dataLength = bytesReceived - sizeof(IPHeader) - sizeof(TCPHeader);
-                string dataString(data, dataLength);
-
-                Application::Log("Received packet: " + Utils::PacketToString(receivedIPHeader, receivedTCPHeader, dataString) + " " + to_string(bytesReceived) + " bytes", isServer);
-                // if (tcpHeader.ack != receivedTcpHeader.seq)
-                // {
-                //     Application::Log("Receiving failed: sequence number does not match acknowledgment number", isServer);
-                //     return 1;
-                // }
-
-                *receivedData = dataString;
-
-                receivingTCPHeader.SetFlagACK(true);
-                receivingTCPHeader.ack = htonl(ntohl(receivedTCPHeader.seq) + (dataLength != 0 ? dataLength : 1));
-            }
-            else if (bytesReceived < 0)
-            {
-                Application::Log("Receiving failed", isServer);
-                return 1;
-            }
-        }
+        // int receivedTCPHeaderDest = -1;
+        // while (receivedTCPHeaderDest != receivingTCPHeader.source)
+        // {
+        //     char buffer[65536];
+        //     int bytesReceived;
+        //     if (isServer == true)
+        //     {
+        //         sockaddr_in senderAddr;
+        //         socklen_t senderAddrSize = sizeof(senderAddr);
+        //         bytesReceived = recvfrom(receivingSocket, buffer, sizeof(buffer), 0, (sockaddr*)&senderAddr, &senderAddrSize);
+        //         *senderIP = IPAddress(senderAddr);
+        //         *senderPort = ntohs(senderAddr.sin_port);
+        //     }else
+        //     {
+        //         sockaddr_in senderAddr = senderIP->GetAsNetworkStruct();
+        //         socklen_t serverAddrSize = sizeof(senderAddr);
+        //         bytesReceived = recvfrom(receivingSocket, buffer, sizeof(buffer), 0, (sockaddr*)&senderAddr, &serverAddrSize);
+        //     }
+        //
+        //     //If error occured, bytesReceived is equal to error
+        //     if (bytesReceived > 0)
+        //     {
+        //         //Get IPHeader from the packet
+        //         IPHeader receivedIPHeader = *(IPHeader*)&buffer;
+        //
+        //         //Get TCPHeader from the packet
+        //         TCPHeader receivedTCPHeader = *(TCPHeader*)Utils::AddToPointer(&buffer, sizeof(IPHeader));
+        //         receivedTCPHeaderDest = receivedTCPHeader.dest;
+        //
+        //         //Check if the received packet was sent to our port
+        //         if (receivedTCPHeaderDest != receivingTCPHeader.source)
+        //             continue;
+        //
+        //         //Get data from packet
+        //         char* data = (char*)Utils::AddToPointer(&buffer, sizeof(IPHeader) + sizeof(TCPHeader));
+        //         int dataLength = bytesReceived - sizeof(IPHeader) - sizeof(TCPHeader);
+        //         string dataString(data, dataLength);
+        //
+        //         Application::Log("Received packet: " + Utils::PacketToString(receivedIPHeader, receivedTCPHeader, dataString) + " " + to_string(bytesReceived) + " bytes", isServer);
+        //         // if (tcpHeader.ack != receivedTcpHeader.seq)
+        //         // {
+        //         //     Application::Log("Receiving failed: sequence number does not match acknowledgment number", isServer);
+        //         //     return 1;
+        //         // }
+        //
+        //         *receivedData = dataString;
+        //
+        //         receivingTCPHeader.SetFlagACK(true);
+        //         receivingTCPHeader.ack = htonl(ntohl(receivedTCPHeader.seq) + (dataLength != 0 ? dataLength : 1));
+        //     }
+        //     else if (bytesReceived < 0)
+        //     {
+        //         Application::Log("Receiving failed", isServer);
+        //         return 1;
+        //     }
+        // }
 
         return 0;
     }
