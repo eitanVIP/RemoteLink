@@ -3,7 +3,7 @@
 
 namespace Server
 {
-    int Start(int port);
+    int Start(NetworkNumber<unsigned short> port);
     bool IsRequested(IPAddress* client);
     int AcceptConnection();
     bool IsConnected();

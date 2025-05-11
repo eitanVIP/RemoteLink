@@ -20,7 +20,7 @@ namespace Utils
     int CreateSocket(int* sock, bool isServer)
     {
         //Create the socket
-        *sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+        *sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
         if (*sock < 0)
         {
             Application::Log("Socket creation failed: " + GetSocketErrorString(), isServer);
@@ -31,15 +31,9 @@ namespace Utils
         // u_long mode = 1; // non-blocking mode
         // ioctlsocket(sock, FIONBIO, &mode);
 
-        // //Set socket option to not automatically add tpc/ip header data
-        // int opt = 1;
-        // setsockopt(*sock, IPPROTO_IP, IP_HDRINCL, reinterpret_cast<const char*>(&opt), sizeof(opt));
-        //
-        // opt = 1;
-        // setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&opt), sizeof(opt));
-        //
-        // DWORD dwValue = 1;
-        // WSAIoctl(*sock, SIO_RCVALL, &dwValue, sizeof(dwValue), NULL, 0, NULL, NULL, NULL);
+        //Set socket option to not automatically add tpc/ip header data
+        int opt = 1;
+        setsockopt(*sock, IPPROTO_IP, IP_HDRINCL, &opt, sizeof(opt));
 
         Application::Log("Socket created", isServer);
         return 0;
@@ -95,7 +89,7 @@ namespace Utils
         }
 
         // Return the IPAddress object with the found IP address
-        return IPAddress(localIP);  // Assuming IPAddress class constructor accepts a string
+        return IPAddress(localIP, NetworkNumber<unsigned short>(0, NumberType::Host));  // Assuming IPAddress class constructor accepts a string
     }
 
     std::string PacketToString(IPHeader ipHeader, TCPHeader tcpHeader, string data)

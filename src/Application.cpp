@@ -29,26 +29,26 @@ namespace Application {
 		InputText("Address", addr, IM_ARRAYSIZE(addr));
 		static char connectPortStr[6];
 		InputText("Connect Port", connectPortStr, IM_ARRAYSIZE(connectPortStr));
-		IPAddress address = IPAddress(addr);
 		int connectPort = atoi(connectPortStr);
+		IPAddress address = IPAddress(addr, *new NetworkNumber<unsigned short>(connectPort, NumberType::Host));
 		if (Button("Connect"))
 		{
-			thread clientConnect([](IPAddress address, int port)
+			thread clientConnect([](IPAddress address)
 			{
-				Client::Connect(address, port);
-			}, address, connectPort);
+				Client::Connect(address);
+			}, address);
 			clientConnect.detach();
 		}
 
 		static char portStr[6];
 		InputText("Port", portStr, IM_ARRAYSIZE(portStr));
-		int port = atoi(portStr);
+		NetworkNumber<unsigned short>* port = new NetworkNumber<unsigned short>(atoi(portStr), NumberType::Host);
 		if (Button("Open Server"))
 		{
-			thread serverStart([](int port)
+			thread serverStart([](NetworkNumber<unsigned short> port)
 			{
 				Server::Start(port);
-			}, port);
+			}, *port);
 			serverStart.detach();
 		}
 

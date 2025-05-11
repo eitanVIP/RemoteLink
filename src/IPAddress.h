@@ -1,15 +1,8 @@
 #pragma once
 
 #include <iostream>
-#include <arpa/inet.h>
 #include <netinet/in.h>
-#include <linux/if_packet.h>
-#include <netinet/ether.h>
-#include <arpa/inet.h>  // inet_pton, inet_ntop
-#include <netinet/in.h> // sockaddr_in
-#include <sys/socket.h> // socket types
-#include <unistd.h>
-#include <cstring>
+#include "NetworkNumber.h"
 
 using namespace std;
 
@@ -17,15 +10,17 @@ class IPAddress
 {
 private:
     string IP;
-    sockaddr_ll ipStruct;
+    sockaddr_in ipStruct;
     uint32_t ipBinary;
+    NetworkNumber<unsigned short> port = NetworkNumber<unsigned short>(0, NumberType::Host);
 
 public:
     IPAddress();
-    IPAddress(string IP);
-    IPAddress(sockaddr_ll IP);
-    IPAddress(uint32_t IP);
+    IPAddress(string IP, NetworkNumber<unsigned short> port);
+    IPAddress(sockaddr_in IP);
+    IPAddress(uint32_t IP, NetworkNumber<unsigned short> port);
     string GetAsString();
-    sockaddr_ll GetAsNetworkStruct();
+    sockaddr_in GetAsNetworkStruct();
     uint32_t GetAsNetworkBinary();
+    NetworkNumber<unsigned short> GetPort();
 };

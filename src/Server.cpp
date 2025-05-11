@@ -1,11 +1,11 @@
 #include "Server.h"
 
-#include <iostream>
 #include <mutex>
 #include <queue>
 #include <string>
 #include <thread>
 #include "Application.h"
+#include "NetworkNumber.h"
 #include "TCPHeader.h"
 #include "TCPNetwork.h"
 #include "Utils.h"
@@ -27,29 +27,28 @@ namespace Server
     mutex mtx;
     queue<string> dataQueue;
 
-    int Start(int port)
+    int Start(NetworkNumber<unsigned short> port)
     {
-        // Utils::CreateSocket(&sock, true);
-        //
-        // sockaddr_in addr = IPAddress("0.0.0.0").GetAsNetworkStruct();
-        // addr.sin_addr.s_addr = INADDR_ANY;
-        // addr.sin_port = htons(port);
-        //
-        // //Binding socket to pc's ip address and port
-        // int binderr = bind(sock, (sockaddr*)&addr, sizeof(addr));
-        // if (binderr < 0)
-        // {
-        //     Application::Log("Socket did not bind to PC on port " + to_string(port) + " because: " + Utils::GetSocketErrorString(), true);
-        //     return 1;
-        // }
-        // Application::Log("Socket bound to PC successfully on port " + to_string(port), true);
-        //
-        // if (TCPNetwork::ServerHandshakeStep1(sock, tcpHeader, port, &clientAddress, &clientPort) != 0)
-        //     return 1;
-        //
-        // requested = true;
-        //
-        // Application::Log("Received Connection request", true);
+        Utils::CreateSocket(&sock, true);
+
+        IPAddress address = IPAddress("0.0.0.0", port);
+        sockaddr_in addr = address.GetAsNetworkStruct();
+
+        //Binding socket to pc's ip address and port
+        int binderr = bind(sock, (sockaddr*)&addr, sizeof(addr));
+        if (binderr < 0)
+        {
+            Application::Log("Socket did not bind to PC on port " + to_string(port.GetAsHost()) + " because: " + Utils::GetSocketErrorString(), true);
+            return 1;
+        }
+        Application::Log("Socket bound to PC successfully on port " + to_string(port.GetAsHost()), true);
+
+        if (TCPNetwork::ServerHandshakeStep1(sock, tcpHeader, port, &clientAddress) != 0)
+            return 1;
+
+        requested = true;
+
+        Application::Log("Received Connection request", true);
         return 0;
     }
 
@@ -66,7 +65,7 @@ namespace Server
         if (!requested)
             return 1;
 
-        if (TCPNetwork::ServerHandshakeStep2(sock, tcpHeader, clientAddress, clientPort) != 0)
+        if (TCPNetwork::ServerHandshakeStep2(sock, tcpHeader, clientAddress) != 0)
             return 1;
 
         connected = true;
@@ -92,7 +91,7 @@ namespace Server
         string data;
         IPAddress sender;
         int senderPort;
-        return TCPNetwork::ReceiveData(sock, tcpHeader, &data, &sender, &senderPort, true);
+        return TCPNetwork::ReceiveData(sock, tcpHeader, &data, &sender, true);
     }
 
     void Close()

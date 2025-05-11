@@ -1,50 +1,54 @@
 #include "IPAddress.h"
+#include <cstring>
 #include <sstream>
+#include <arpa/inet.h>
 
 IPAddress::IPAddress()
 {
-    // IP = "0.0.0.0";
-    // memset(&ipStruct, 0, sizeof(ipStruct));
-    // ipStruct.sin_family = AF_INET;
-    // inet_pton(AF_INET, IP.c_str(), &ipStruct.sin_addr);
-    // ipStruct.sin_port = 0;
-    //
-    // ipBinary = ipStruct.sin_addr.s_addr;
+    IP = "0.0.0.0";
+    port = NetworkNumber<unsigned short>(0, NumberType::Host);
+
+    inet_pton(AF_INET, IP.c_str(), &ipStruct.sin_addr);
+    ipStruct.sin_port = port.GetAsNetwork(); // Set port to 0 as we don't need it
+    ipStruct.sin_family = AF_INET;
+
+    ipBinary = *(uint32_t*)&ipStruct.sin_addr;
 }
 
-IPAddress::IPAddress(string ip)
+IPAddress::IPAddress(string ip, NetworkNumber<unsigned short> port)
 {
-    // IP = ip;
-    // memset(&ipStruct, 0, sizeof(ipStruct));
-    // ipStruct.sin_family = AF_INET;
-    // inet_pton(AF_INET, IP.c_str(), &ipStruct.sin_addr);
-    // ipStruct.sin_port = 0;
-    //
-    // ipBinary = ipStruct.sin_addr.s_addr;
+    IP = ip;
+    this->port = port;
+
+    inet_pton(AF_INET, IP.c_str(), &ipStruct.sin_addr);
+    ipStruct.sin_port = port.GetAsNetwork();
+    ipStruct.sin_family = AF_INET;
+
+    ipBinary = *(uint32_t*)&ipStruct.sin_addr;
 }
 
-// IPAddress::IPAddress(sockaddr_in ip)
-// {
-//     // ipStruct = ip;
-//     // ipStruct.sin_port = 0;
-//     // ipBinary = ipStruct.sin_addr.s_addr;
-//     //
-//     // char buffer[INET_ADDRSTRLEN] = {};
-//     // inet_ntop(AF_INET, &ipStruct.sin_addr, buffer, INET_ADDRSTRLEN);
-//     // IP = buffer;
-// }
-
-IPAddress::IPAddress(uint32_t ip)
+IPAddress::IPAddress(sockaddr_in ip)
 {
-    // ipBinary = ip;
-    // memset(&ipStruct, 0, sizeof(ipStruct));
-    // ipStruct.sin_addr.s_addr = ip;
-    // ipStruct.sin_family = AF_INET;
-    // ipStruct.sin_port = 0;
-    //
-    // char buffer[INET_ADDRSTRLEN] = {};
-    // inet_ntop(AF_INET, &ipStruct.sin_addr, buffer, INET_ADDRSTRLEN);
-    // IP = buffer;
+    ipStruct = ip;
+    ipBinary = *(uint32_t*)&ipStruct.sin_addr;
+    this->port = NetworkNumber(ip.sin_port, NumberType::Network);
+
+    char buffer[INET_ADDRSTRLEN] = {0};
+    inet_ntop(AF_INET, &ipStruct.sin_addr, buffer, INET_ADDRSTRLEN);
+    IP = buffer; // Assign to std::string
+}
+
+IPAddress::IPAddress(uint32_t ip, NetworkNumber<unsigned short> port)
+{
+    ipBinary = ip;
+    ipStruct.sin_addr.s_addr = ip;
+    ipStruct.sin_port = port.GetAsNetwork();
+    ipStruct.sin_family = AF_INET;
+    this->port = port;
+
+    char buffer[INET_ADDRSTRLEN] = {0}; // Buffer for IPv4 address string
+    inet_ntop(AF_INET, &ipStruct.sin_addr, buffer, INET_ADDRSTRLEN);
+    IP = buffer; // Assign to std::string
 }
 
 string IPAddress::GetAsString()
@@ -52,12 +56,17 @@ string IPAddress::GetAsString()
     return IP;
 }
 
-// sockaddr_in IPAddress::GetAsNetworkStruct()
-// {
-//     return ipStruct;
-// }
+sockaddr_in IPAddress::GetAsNetworkStruct()
+{
+    return ipStruct;
+}
 
 uint32_t IPAddress::GetAsNetworkBinary()
 {
     return ipBinary;
+}
+
+NetworkNumber<unsigned short> IPAddress::GetPort()
+{
+    return port;
 }

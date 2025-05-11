@@ -4,7 +4,7 @@
 
 namespace Client
 {
-    int Connect(IPAddress address, int port);
+    int Connect(IPAddress address);
     int Update();
     bool IsConnected();
     int SendMessageToServer(string message);

@@ -10,9 +10,9 @@ using namespace std;
 
 namespace TCPNetwork
 {
-    int SendData(int sourceSocket, string data, TCPHeader& sourceTCPHeader, IPAddress destIP, int destPort, bool isServer);
-    int ReceiveData(int receivingSocket, TCPHeader& receivingTCPHeader, string* receivedData, IPAddress* senderIP, int* senderPort, bool isServer);
-    int ClientHandshake(int sock, TCPHeader& tcpHeader, IPAddress destIP, int destPort, int clientPort);
-    int ServerHandshakeStep1(int sock, TCPHeader& tcpHeader, int serverPort, IPAddress* clientAddress, int* clientPort);
-    int ServerHandshakeStep2(int sock, TCPHeader& tcpHeader, IPAddress clientAddress, int clientPort);
+    int SendData(int sourceSocket, string data, TCPHeader& sourceTCPHeader, IPAddress destIP, bool isServer);
+    int ReceiveData(int receivingSocket, TCPHeader& receivingTCPHeader, string* receivedData, IPAddress* senderIP, bool isServer);
+    int ClientHandshake(int sock, TCPHeader& tcpHeader, IPAddress destIP, NetworkNumber<unsigned short>  clientPort);
+    int ServerHandshakeStep1(int sock, TCPHeader& tcpHeader, NetworkNumber<unsigned short>  serverPort, IPAddress* clientAddress);
+    int ServerHandshakeStep2(int sock, TCPHeader& tcpHeader, IPAddress clientAddress);
 }
