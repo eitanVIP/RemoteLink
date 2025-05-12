@@ -102,18 +102,18 @@ namespace TCPNetwork
     void CreateInitialTCPHeader(TCPHeader& header, NetworkNumber<unsigned short> sourcePort, NetworkNumber<unsigned short> destPort)
     {
         //Set the first message tcp header
-        header.source = sourcePort.GetAsNetwork();
-        header.dest = destPort.GetAsNetwork();
-        header.seq = htonl(0);
-        header.ack = htonl(0);
+        header.source = sourcePort.GetAsHost();
+        header.dest = destPort.GetAsHost();
+        header.seq = 0;
+        header.ack = 0;
         header.flags = 0;
         //SYN is set because first message
+        header.SetDataOffset(5);
         header.SetFlagSYN(true);
         //Max 16-bit number for maximum messages size
         header.window = 0xFFFF;
         header.check = 0;
         header.urg_ptr = 0;
-        
     }
     
     int SendData(int sourceSocket, string data, TCPHeader& sourceTCPHeader, IPAddress destIP, bool isServer)
@@ -125,6 +125,9 @@ namespace TCPNetwork
 
         //Create IP header
         IPHeader ipHeader = CreateIPHeader(localIP, destIP, dataLength);
+
+        //Convert TCP header
+        sourceTCPHeader.ConvertToNetworkOrder();
 
         //Calculate TCP header checksum
         sourceTCPHeader.check = CalculateTCPChecksum(&sourceTCPHeader, sizeof(TCPHeader) + dataLength, localIP, destIP);
@@ -141,6 +144,9 @@ namespace TCPNetwork
 
         // Copy the data after the TCP header
         memcpy(Utils::AddToPointer(packet, sizeof(IPHeader) + sizeof(TCPHeader)), &data[0], dataLength);
+
+        //Convert TCP header back
+        sourceTCPHeader.ConvertToHostOrder();
 
         //Send data and check for errors
         sockaddr_in addr = destIP.GetAsNetworkStruct();

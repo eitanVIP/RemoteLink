@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include <cstdint>
 
 struct TCPHeader
@@ -20,6 +19,7 @@ struct TCPHeader
     void SetFlagPSH(bool val);
     void SetFlagACK(bool val);
     void SetFlagURG(bool val);
+    void SetDataOffset(uint8_t offsetWords = 5);
 
     bool GetFlagFIN();
     bool GetFlagSYN();
@@ -27,4 +27,8 @@ struct TCPHeader
     bool GetFlagPSH();
     bool GetFlagACK();
     bool GetFlagURG();
+    uint8_t GetDataOffset();
+
+    void ConvertToNetworkOrder();
+    void ConvertToHostOrder();
 };

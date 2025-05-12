@@ -1,4 +1,5 @@
 #include "TCPHeader.h"
+#include <netinet/in.h>
 
 void TCPHeader::SetFlagFIN(bool val) { 
     if (val) flags |= (1 << 0);
@@ -30,6 +31,11 @@ void TCPHeader::SetFlagURG(bool val) {
     else flags &= ~(1 << 5);
 }
 
+void TCPHeader::SetDataOffset(uint8_t offsetWords) {
+    flags &= 0x0FFF;
+    flags |= ((offsetWords & 0x0F) << 12);
+}
+
 bool TCPHeader::GetFlagFIN() { 
     return (flags & (1 << 0)) != 0;
 }
@@ -52,4 +58,30 @@ bool TCPHeader::GetFlagACK() {
 
 bool TCPHeader::GetFlagURG() { 
     return (flags & (1 << 5)) != 0;
+}
+
+uint8_t TCPHeader::GetDataOffset() {
+    return (flags >> 12) & 0x0F;
+}
+
+void TCPHeader::ConvertToNetworkOrder() {
+    source   = htons(source);
+    dest     = htons(dest);
+    seq      = htonl(seq);
+    ack      = htonl(ack);
+    flags    = htons(flags);     // Includes Data Offset and control bits
+    window   = htons(window);
+    check    = htons(check);
+    urg_ptr  = htons(urg_ptr);
+}
+
+void TCPHeader::ConvertToHostOrder() {
+    source   = ntohs(source);
+    dest     = ntohs(dest);
+    seq      = ntohl(seq);
+    ack      = ntohl(ack);
+    flags    = ntohs(flags);     // Reverts Data Offset and control bits
+    window   = ntohs(window);
+    check    = ntohs(check);
+    urg_ptr  = ntohs(urg_ptr);
 }
