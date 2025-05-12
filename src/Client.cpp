@@ -4,6 +4,7 @@
 #include <string>
 #include "Application.h"
 #include "IPHeader.h"
+#include "Socket.h"
 #include "TCPHeader.h"
 #include "TCPNetwork.h"
 #include "Utils.h"
@@ -12,34 +13,43 @@ using namespace std;
 
 namespace Client
 {
-    int sock = -1;
     bool connected = false;
-    TCPHeader tcpHeader;
+    Socket socket;
     IPAddress serverAddress;
-    int serverPort;
     
     int Connect(IPAddress address)
     {
-        Utils::CreateSocket(&sock, false);
-
         serverAddress = address;
-        serverPort = address.GetPort().GetAsHost();
-        sockaddr_in addr = address.GetAsNetworkStruct();
 
-        //Connect to address
-        int err = connect(sock, (sockaddr*)&addr, sizeof(addr));
-        if (err != 0)
+        socket = Socket();
+        socket.Connect(address);
+
+        Utils::CreateInitialTCPHeader(socket.GetTCPHeader(), NetworkNumber<Port>(Utils::GetRandomPort(), NumberType::Host), address.GetPort());
+
+        if (socket.SendData("", address) != 0)
         {
-            Application::Log("Connection error", false);
+            Application::Log("Connection handshake failed at step 1");
             return 1;
         }
-        Application::Log("Found server with IP: " + address.GetAsString(), false);
 
-        if (TCPNetwork::ClientHandshake(sock, tcpHeader, address, NetworkNumber<unsigned short>(serverPort, NumberType::Host)/*Temporary*/) != 0)
+        string data;
+        if (socket.ReceiveData(&data, &address, false) != 0)
+        {
+            Application::Log("Connection handshake failed at step 2");
             return 1;
+        }
+
+        socket.GetTCPHeader().SetFlagSYN(false);
+        socket.GetTCPHeader().SetFlagACK(true);
+        if (socket.SendData("", address) != 0)
+        {
+            Application::Log("Connection handshake failed at step 3");
+            return 1;
+        }
+        socket.GetTCPHeader().SetFlagACK(false);
 
         connected = true;
-        Application::Log("Connection established", false);
+        Application::Log("Connection established");
         return 0;
     }
 

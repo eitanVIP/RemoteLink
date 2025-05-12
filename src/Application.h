@@ -5,6 +5,6 @@
 namespace Application {
 	int Start();
 	void Update();
-	void Log(std::string msg, bool isServer = true);
+	void Log(std::string msg);
 	void Close();
 }

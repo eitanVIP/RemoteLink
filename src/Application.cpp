@@ -79,14 +79,14 @@ namespace Application {
 		End();
 	}
 
-	void Log(string msg, bool isServer)
+	void Log(string msg)
 	{
 		mtx.lock();
 
-		if (isServer)
-			msg = "[Server] " + msg;
-		else
-			msg = "[Client] " + msg;
+		// if (isServer)
+		// 	msg = "[Server] " + msg;
+		// else
+		// 	msg = "[Client] " + msg;
 
 		cout << msg << endl;
 		if (log.empty())

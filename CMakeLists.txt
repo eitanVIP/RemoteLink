@@ -26,7 +26,6 @@ file(GLOB_RECURSE PROJECT_SRC
 add_executable(RemoteLink
         ${PROJECT_SRC}
         ${IMGUI_SRC}
-        src/NetworkNumber.h
 )
 
 # Includes

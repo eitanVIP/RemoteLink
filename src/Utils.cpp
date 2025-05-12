@@ -1,42 +1,15 @@
 #include "Utils.h"
-#include <string>
+#include <cmath>
 #include "Application.h"
 #include <unistd.h>
-#include <cstring>
-#include <netinet/in.h>
-#include <iostream>
 #include <sstream>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <net/ethernet.h>
 #include <ifaddrs.h>
+#include "Socket.h"
 
 namespace Utils
 {
     std::string GetSocketErrorString() {
         return strerror(errno);
-    }
-
-    int CreateSocket(int* sock, bool isServer)
-    {
-        //Create the socket
-        *sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
-        if (*sock < 0)
-        {
-            Application::Log("Socket creation failed: " + GetSocketErrorString(), isServer);
-            return 1;
-        }
-
-        //Set socket to non-blocking mode - doesn't wait for data, if there isn't data it just continues the code
-        // u_long mode = 1; // non-blocking mode
-        // ioctlsocket(sock, FIONBIO, &mode);
-
-        //Set socket option to not automatically add tpc/ip header data
-        int opt = 1;
-        setsockopt(*sock, IPPROTO_IP, IP_HDRINCL, &opt, sizeof(opt));
-
-        Application::Log("Socket created", isServer);
-        return 0;
     }
 
     IPAddress GetLocalIP(bool isServer)
@@ -70,7 +43,7 @@ namespace Utils
         }
         else
         {
-            Application::Log("Error getting network interfaces: " + string(strerror(errno)), isServer);
+            Application::Log("Error getting network interfaces: " + string(strerror(errno)));
         }
 
         // Free the memory allocated by getifaddrs
@@ -81,11 +54,11 @@ namespace Utils
 
         if (localIP.empty())
         {
-            Application::Log("No valid IP address found!", isServer);
+            Application::Log("No valid IP address found!");
         }
         else
         {
-            Application::Log("Local IP address: " + localIP, isServer);
+            Application::Log("Local IP address: " + localIP);
         }
 
         // Return the IPAddress object with the found IP address
@@ -128,5 +101,142 @@ namespace Utils
         ss << ")";
     
         return ss.str();
+    }
+
+    uint16_t CalculateIPChecksum(uint16_t* data, size_t length) {
+        uint32_t sum = 0;
+
+        while (length > 1) {
+            sum += *data++;
+            length -= 2;
+        }
+
+        if (length == 1) { // Handle odd byte at the end
+            sum += *(uint8_t*)data;
+        }
+
+        sum = (sum >> 16) + (sum & 0xFFFF); // Fold high into low
+        sum += (sum >> 16);                 // Handle carry
+        return (uint16_t)~sum;
+    }
+
+    IPHeader CreateIPHeader(IPAddress srcIP, IPAddress destIP, size_t dataLength)
+    {
+        IPHeader header;
+
+        // Version 4, IHL 5 (20 bytes)
+        header.version_ihl = (4 << 4) | 5;
+        // Default TOS
+        header.tos = 0;
+        // IPHeader + TCPHeader + data
+        header.total_length = htons(sizeof(IPHeader) + sizeof(TCPHeader) + dataLength);
+        // Arbitrary ID
+        header.identification = htons(round(10000 * rand() / (RAND_MAX + 1.0) + 5000));
+        // Don't fragment
+        header.flags_offset = htons(0x4000);
+        // Common TTL value
+        header.ttl = 64;
+        // TCP protocol
+        header.protocol = 6;
+        // Network byte order
+        header.src_ip = srcIP.GetAsNetworkBinary();
+        // Network byte order
+        header.dest_ip = destIP.GetAsNetworkBinary();
+        // Checksum calculation
+        header.checksum = 0;
+        header.checksum = CalculateIPChecksum((uint16_t*)&header, sizeof(IPHeader));
+
+        return header;
+    }
+
+    struct PseudoHeader
+    {
+        uint32_t srcIP;
+        uint32_t destIP;
+        uint8_t reserved;  // Must be 0
+        uint8_t protocol;
+        uint16_t tcpLength;  // TCP header + payload
+    };
+
+    uint16_t CalculateTCPChecksum(TCPHeader* headerPtr, size_t tcpLength, IPAddress srcIP, IPAddress destIP) {
+        headerPtr->check = 0;
+
+        struct PseudoHeader pheader;
+        pheader.srcIP = srcIP.GetAsNetworkBinary();
+        pheader.destIP = destIP.GetAsNetworkBinary();
+        pheader.reserved = 0;
+        pheader.protocol = 6; // TCP protocol number
+        pheader.tcpLength = htons(tcpLength);
+
+        uint32_t sum = 0;
+        uint16_t* pheader_ptr = (uint16_t*)&pheader;
+
+        // Add pseudo-header
+        for (size_t i = 0; i < sizeof(PseudoHeader) / 2; ++i) {
+            sum += *pheader_ptr++;
+        }
+
+        uint16_t* segmentPtr = (uint16_t*)headerPtr;
+        // Add TCP segment (header + data)
+        while (tcpLength > 1) {
+            sum += *segmentPtr++;
+            tcpLength -= 2;
+        }
+
+        if (tcpLength == 1) { // Handle odd byte
+            sum += *(uint8_t*)segmentPtr;
+        }
+
+        sum = (sum >> 16) + (sum & 0xFFFF); // Fold high into low
+        sum += (sum >> 16);                 // Handle carry
+        return (uint16_t)~sum;
+    }
+
+    void CreateInitialTCPHeader(TCPHeader& header, NetworkNumber<Port> sourcePort, NetworkNumber<Port> destPort)
+    {
+        //Set the first message tcp header
+        header.source = sourcePort.GetAsHost();
+        header.dest = destPort.GetAsHost();
+        header.seq = 0;
+        header.ack = 0;
+        header.flags = 0;
+        //SYN is set because first message
+        header.SetDataOffset(5);
+        header.SetFlagSYN(true);
+        //Max 16-bit number for maximum messages size
+        header.window = 0xFFFF;
+        header.check = 0;
+        header.urg_ptr = 0;
+    }
+
+    int GetRandomPort() {
+        int sock = socket(AF_INET, SOCK_STREAM, 0);
+        if (sock < 0) {
+            Application::Log("Failed to create socket on generating random port");
+            return -1;
+        }
+
+        sockaddr_in addr;
+        std::memset(&addr, 0, sizeof(addr));
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = INADDR_ANY; // Bind to all interfaces
+        addr.sin_port = 0; // Let OS choose a free port
+
+        if (bind(sock, (sockaddr*)&addr, sizeof(addr)) < 0) {
+            Application::Log("Failed to bind socket on generating random port");
+            close(sock);
+            return -1;
+        }
+
+        socklen_t len = sizeof(addr);
+        if (getsockname(sock, (sockaddr*)&addr, &len) == -1) {
+            Application::Log("Failed to get port from socket on generating random port");
+            close(sock);
+            return -1;
+        }
+
+        int port = ntohs(addr.sin_port);
+        close(sock);
+        return port;
     }
 }

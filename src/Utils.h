@@ -4,16 +4,14 @@
 #include "IPAddress.h"
 #include "TCPHeader.h"
 #include "IPHeader.h"
-#include "Application.h"
-#include <unistd.h>
 #include <cstring>
-#include <netinet/in.h>
+
+#include "Socket.h"
 
 namespace Utils
 {
     std::string GetSocketErrorString();
-    int CreateSocket(int* sock, bool isServer);
-    IPAddress GetLocalIP(bool isServer);
+    IPAddress GetLocalIP();
 
     template<typename T>
     T* AddToPointer(T* pointer, size_t offset)
@@ -22,4 +20,9 @@ namespace Utils
     }
 
     std::string PacketToString(IPHeader ipHeader, TCPHeader tcpHeader, string data);
+    uint16_t CalculateIPChecksum(uint16_t* data, size_t length);
+    IPHeader CreateIPHeader(IPAddress srcIP, IPAddress destIP, size_t dataLength);
+    uint16_t CalculateTCPChecksum(TCPHeader* headerPtr, size_t tcpLength, IPAddress srcIP, IPAddress destIP);
+    void CreateInitialTCPHeader(TCPHeader& header, NetworkNumber<Port> sourcePort, NetworkNumber<Port> destPort);
+    int GetRandomPort();
 }
