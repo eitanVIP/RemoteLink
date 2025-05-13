@@ -12,7 +12,7 @@ namespace Utils
         return strerror(errno);
     }
 
-    IPAddress GetLocalIP(bool isServer)
+    IPAddress GetLocalIP()
     {
         struct ifaddrs *interfaces = nullptr;
         struct ifaddrs *ifa = nullptr;

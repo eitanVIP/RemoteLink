@@ -30,7 +30,7 @@ namespace Application {
 		static char connectPortStr[6];
 		InputText("Connect Port", connectPortStr, IM_ARRAYSIZE(connectPortStr));
 		int connectPort = atoi(connectPortStr);
-		IPAddress address = IPAddress(addr, *new NetworkNumber<unsigned short>(connectPort, NumberType::Host));
+		IPAddress address = IPAddress(addr, *new NetworkNumber<Port>(connectPort, NumberType::Host));
 		if (Button("Connect"))
 		{
 			thread clientConnect([](IPAddress address)

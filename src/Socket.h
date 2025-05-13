@@ -1,19 +1,17 @@
 #pragma once
+
 #include <string>
 #include "IPAddress.h"
 #include "NetworkNumber.h"
 #include "TCPHeader.h"
 
-typedef unsigned short Port;
-
 class Socket {
 private:
-    int socket;
+    int sock;
     TCPHeader tcpHeader;
 
 public:
-    Socket();
-    bool IsSocketValid();
+    int CreateSocket();
     int Bind(NetworkNumber<Port> port);
     int Connect(IPAddress IP);
     int SendData(std::string data, IPAddress destIP);

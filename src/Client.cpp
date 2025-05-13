@@ -1,12 +1,8 @@
 #include "Client.h"
-
-#include <iostream>
 #include <string>
 #include "Application.h"
-#include "IPHeader.h"
 #include "Socket.h"
 #include "TCPHeader.h"
-#include "TCPNetwork.h"
 #include "Utils.h"
 
 using namespace std;
@@ -21,7 +17,7 @@ namespace Client
     {
         serverAddress = address;
 
-        socket = Socket();
+        socket.CreateSocket();
         socket.Connect(address);
 
         Utils::CreateInitialTCPHeader(socket.GetTCPHeader(), NetworkNumber<Port>(Utils::GetRandomPort(), NumberType::Host), address.GetPort());
@@ -65,12 +61,12 @@ namespace Client
 
     int SendMessageToServer(string message)
     {
-        return TCPNetwork::SendData(sock, message, tcpHeader, serverAddress, false);
+        return socket.SendData(message, serverAddress);
     }
 
     void Disconnect()
     {
         connected = false;
-        close(sock);
+        socket.Close();
     }
 }

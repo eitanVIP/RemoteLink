@@ -1,19 +1,27 @@
 #include "Socket.h"
+#include <unistd.h>
 #include "Application.h"
 #include "Utils.h"
+#include <cmath>
+#include <sstream>
+#include <ifaddrs.h>
 
-Socket::Socket()
+int Socket::CreateSocket()
 {
     //Create the socket
-    socket = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
-    if (socket < 0)
+    sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
+    if (sock < 0)
+    {
         Application::Log("Socket creation failed: " + Utils::GetSocketErrorString());
+        return 1;
+    }
 
     //Set socket option to not automatically add tpc/ip header data
     int opt = 1;
-    setsockopt(socket, IPPROTO_IP, IP_HDRINCL, &opt, sizeof(opt));
+    setsockopt(sock, IPPROTO_IP, IP_HDRINCL, &opt, sizeof(opt));
 
     Application::Log("Socket created");
+    return 0;
 }
 
 int Socket::Bind(NetworkNumber<Port> port)
@@ -22,7 +30,7 @@ int Socket::Bind(NetworkNumber<Port> port)
     sockaddr_in addr = address.GetAsNetworkStruct();
 
     //Binding socket to pc's ip address and port
-    int binderr = bind(socket, (sockaddr*)&addr, sizeof(addr));
+    int binderr = bind(sock, (sockaddr*)&addr, sizeof(addr));
     if (binderr < 0)
     {
         Application::Log("Socket did not bind to PC on port " + to_string(port.GetAsHost()) + " because: " + Utils::GetSocketErrorString());
@@ -63,7 +71,7 @@ int Socket::SendData(std::string data, IPAddress destIP)
 
     //Send data and check for errors
     sockaddr_in addr = destIP.GetAsNetworkStruct();
-    int bytesSent = sendto(socket, packet, packetSize, 0, (sockaddr*)&addr, sizeof(sockaddr_in));
+    int bytesSent = sendto(sock, packet, packetSize, 0, (sockaddr*)&addr, sizeof(sockaddr_in));
 
     if (bytesSent > 0)
         Application::Log("Sent packet: " + Utils::PacketToString(ipHeader, tcpHeader, data) + " " + to_string(bytesSent) + " bytes");
@@ -90,12 +98,12 @@ int Socket::ReceiveData(string* receivedData, IPAddress* senderIP, bool receiveF
         if (receiveFromAll)
         {
             socklen_t senderAddrSize = sizeof(senderAddr);
-            bytesReceived = recvfrom(socket, buffer, sizeof(buffer), 0, (sockaddr*)&senderAddr, &senderAddrSize);
+            bytesReceived = recvfrom(sock, buffer, sizeof(buffer), 0, (sockaddr*)&senderAddr, &senderAddrSize);
         }else
         {
             senderAddr = senderIP->GetAsNetworkStruct();
             socklen_t serverAddrSize = sizeof(senderAddr);
-            bytesReceived = recvfrom(socket, buffer, sizeof(buffer), 0, (sockaddr*)&senderAddr, &serverAddrSize);
+            bytesReceived = recvfrom(sock, buffer, sizeof(buffer), 0, (sockaddr*)&senderAddr, &serverAddrSize);
         }
 
         if (bytesReceived > 0)
@@ -147,25 +155,21 @@ int Socket::ReceiveData(string* receivedData, IPAddress* senderIP, bool receiveF
 
 void Socket::Close()
 {
-    close(socket);
+    close(sock);
 }
-
-bool Socket::IsSocketValid()
-{
-    return socket < 0;
-}
-
 
 int Socket::Connect(IPAddress IP)
 {
     sockaddr_in addr = IP.GetAsNetworkStruct();
 
-    int err = connect(socket, (sockaddr*)&addr, sizeof(addr));
+    int err = connect(sock, (sockaddr*)&addr, sizeof(addr));
     if (err != 0)
     {
         Application::Log("Connection error: " + Utils::GetSocketErrorString());
         return 1;
     }
+
+    return 0;
 }
 
 TCPHeader& Socket::GetTCPHeader()

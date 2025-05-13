@@ -7,7 +7,7 @@
 enum class NumberType { Host, Network };
 
 template <typename T>
-class NetworkNumber {
+struct NetworkNumber {
 private:
     T hNumber;
     T nNumber;

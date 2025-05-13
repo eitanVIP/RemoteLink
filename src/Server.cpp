@@ -1,5 +1,4 @@
 #include "Server.h"
-
 #include <mutex>
 #include <queue>
 #include <string>
@@ -7,19 +6,14 @@
 #include "Application.h"
 #include "NetworkNumber.h"
 #include "TCPHeader.h"
-#include "TCPNetwork.h"
 #include "Utils.h"
-
-#pragma comment(lib, "Ws2_32.lib")
 
 using namespace std;
 
 namespace Server
 {
-    int sock = -1;
-    TCPHeader tcpHeader;
+    Socket socket;
     IPAddress clientAddress;
-    int clientPort;
     
     bool connected = false;
     bool requested = false;
@@ -27,28 +21,24 @@ namespace Server
     mutex mtx;
     queue<string> dataQueue;
 
-    int Start(NetworkNumber<unsigned short> port)
+    int Start(NetworkNumber<Port> port)
     {
-        Utils::CreateSocket(&sock, true);
+        socket.CreateSocket();
+        socket.Bind(port);
 
-        IPAddress address = IPAddress("0.0.0.0", port);
-        sockaddr_in addr = address.GetAsNetworkStruct();
+        Utils::CreateInitialTCPHeader(socket.GetTCPHeader(), port, NetworkNumber<Port>(0, NumberType::Host));
 
-        //Binding socket to pc's ip address and port
-        int binderr = bind(sock, (sockaddr*)&addr, sizeof(addr));
-        if (binderr < 0)
+        string data;
+        IPAddress clientAddress;
+        if (socket.ReceiveData(&data, &clientAddress, true) != 0)
         {
-            Application::Log("Socket did not bind to PC on port " + to_string(port.GetAsHost()) + " because: " + Utils::GetSocketErrorString(), true);
+            Application::Log("Connection handshake failed at step 1");
             return 1;
         }
-        Application::Log("Socket bound to PC successfully on port " + to_string(port.GetAsHost()), true);
-
-        if (TCPNetwork::ServerHandshakeStep1(sock, tcpHeader, port, &clientAddress) != 0)
-            return 1;
+        socket.GetTCPHeader().dest = clientAddress.GetPort().GetAsHost();
 
         requested = true;
-
-        Application::Log("Received Connection request", true);
+        Application::Log("Received Connection request");
         return 0;
     }
 
@@ -65,15 +55,29 @@ namespace Server
         if (!requested)
             return 1;
 
-        if (TCPNetwork::ServerHandshakeStep2(sock, tcpHeader, clientAddress) != 0)
+
+        if (socket.SendData("", clientAddress) != 0)
+        {
+            Application::Log("Connection handshake failed at step 2");
             return 1;
+        }
+
+        string data;
+        if (socket.ReceiveData(&data, &clientAddress, false) != 0)
+        {
+            Application::Log("Connection handshake failed at step 3");
+            return 1;
+        }
+
+        socket.GetTCPHeader().SetFlagSYN(false);
+        socket.GetTCPHeader().SetFlagACK(false);
 
         connected = true;
         requested = false;
         
-        Application::Log("Connection established", true);
+        Application::Log("Connection established");
 
-        thread serverUpdate([]()
+        thread serverUpdate([]
         {
             while (Update() == 0);
         });
@@ -89,15 +93,13 @@ namespace Server
 
     int Update() {
         string data;
-        IPAddress sender;
-        int senderPort;
-        return TCPNetwork::ReceiveData(sock, tcpHeader, &data, &sender, true);
+        return socket.ReceiveData(&data, &clientAddress, false);
     }
 
     void Close()
     {
         requested = false;
         connected = false;
-        close(sock);
+        socket.Close();
     }
 }

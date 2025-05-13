@@ -1,12 +1,14 @@
 #include "IPAddress.h"
+
 #include <cstring>
 #include <sstream>
 #include <arpa/inet.h>
+#include "Socket.h"
 
 IPAddress::IPAddress()
 {
     IP = "0.0.0.0";
-    port = NetworkNumber<unsigned short>(0, NumberType::Host);
+    port = NetworkNumber<Port>(0, NumberType::Host);
 
     inet_pton(AF_INET, IP.c_str(), &ipStruct.sin_addr);
     ipStruct.sin_port = port.GetAsNetwork(); // Set port to 0 as we don't need it
@@ -15,7 +17,7 @@ IPAddress::IPAddress()
     ipBinary = *(uint32_t*)&ipStruct.sin_addr;
 }
 
-IPAddress::IPAddress(string ip, NetworkNumber<unsigned short> port)
+IPAddress::IPAddress(string ip, NetworkNumber<Port> port)
 {
     IP = ip;
     this->port = port;
@@ -38,7 +40,7 @@ IPAddress::IPAddress(sockaddr_in ip)
     IP = buffer; // Assign to std::string
 }
 
-IPAddress::IPAddress(uint32_t ip, NetworkNumber<unsigned short> port)
+IPAddress::IPAddress(uint32_t ip, NetworkNumber<Port> port)
 {
     ipBinary = ip;
     ipStruct.sin_addr.s_addr = ip;
