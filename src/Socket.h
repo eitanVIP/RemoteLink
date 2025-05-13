@@ -15,7 +15,7 @@ public:
     int Bind(NetworkNumber<Port> port);
     int Connect(IPAddress IP);
     int SendData(std::string data, IPAddress destIP);
-    int ReceiveData(string* receivedData, IPAddress* senderIP, bool receiveFromAll);
+    int ReceiveData(string* receivedData, IPAddress* senderIP);
     TCPHeader& GetTCPHeader();
     void Close();
 };

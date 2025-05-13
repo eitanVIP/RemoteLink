@@ -62,7 +62,7 @@ namespace Utils
         }
 
         // Return the IPAddress object with the found IP address
-        return IPAddress(localIP, NetworkNumber<unsigned short>(0, NumberType::Host));  // Assuming IPAddress class constructor accepts a string
+        return IPAddress(localIP, NetworkNumber<Port>(0, NumberType::Host));  // Assuming IPAddress class constructor accepts a string
     }
 
     std::string PacketToString(IPHeader ipHeader, TCPHeader tcpHeader, string data)
@@ -82,11 +82,11 @@ namespace Utils
            << ", ";
     
         ss << "TCP: " 
-           << ntohs(tcpHeader.source) << " -> " << ntohs(tcpHeader.dest)
+           << tcpHeader.source << " -> " << tcpHeader.dest
            << ", ";
     
-        ss << "SEQ: " << ntohl(tcpHeader.seq)
-           << ", ACK: " << ntohl(tcpHeader.ack)
+        ss << "SEQ: " << tcpHeader.seq
+           << ", ACK: " << tcpHeader.ack
            << ", Flags: ";
     
         if (tcpHeader.GetFlagFIN()) ss << "FIN ";

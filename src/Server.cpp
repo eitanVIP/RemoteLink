@@ -29,8 +29,7 @@ namespace Server
         Utils::CreateInitialTCPHeader(socket.GetTCPHeader(), port, NetworkNumber<Port>(0, NumberType::Host));
 
         string data;
-        IPAddress clientAddress;
-        if (socket.ReceiveData(&data, &clientAddress, true) != 0)
+        if (socket.ReceiveData(&data, &clientAddress) != 0)
         {
             Application::Log("Connection handshake failed at step 1");
             return 1;
@@ -55,15 +54,16 @@ namespace Server
         if (!requested)
             return 1;
 
-
-        if (socket.SendData("", clientAddress) != 0)
+        socket.GetTCPHeader().SetFlagACK(true);
+        if (socket.SendData("sigma", clientAddress) != 0)
         {
             Application::Log("Connection handshake failed at step 2");
             return 1;
         }
 
         string data;
-        if (socket.ReceiveData(&data, &clientAddress, false) != 0)
+        IPAddress addr;
+        if (socket.ReceiveData(&data, &addr) != 0)
         {
             Application::Log("Connection handshake failed at step 3");
             return 1;
@@ -74,7 +74,7 @@ namespace Server
 
         connected = true;
         requested = false;
-        
+
         Application::Log("Connection established");
 
         thread serverUpdate([]
@@ -93,7 +93,8 @@ namespace Server
 
     int Update() {
         string data;
-        return socket.ReceiveData(&data, &clientAddress, false);
+        IPAddress addr;
+        return socket.ReceiveData(&data, &addr);
     }
 
     void Close()

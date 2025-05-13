@@ -22,14 +22,15 @@ namespace Client
 
         Utils::CreateInitialTCPHeader(socket.GetTCPHeader(), NetworkNumber<Port>(Utils::GetRandomPort(), NumberType::Host), address.GetPort());
 
-        if (socket.SendData("", address) != 0)
+        if (socket.SendData("sigma", address) != 0)
         {
             Application::Log("Connection handshake failed at step 1");
             return 1;
         }
 
         string data;
-        if (socket.ReceiveData(&data, &address, false) != 0)
+        IPAddress addr;
+        if (socket.ReceiveData(&data, &addr) != 0)
         {
             Application::Log("Connection handshake failed at step 2");
             return 1;
@@ -37,7 +38,7 @@ namespace Client
 
         socket.GetTCPHeader().SetFlagSYN(false);
         socket.GetTCPHeader().SetFlagACK(true);
-        if (socket.SendData("", address) != 0)
+        if (socket.SendData("sigma", address) != 0)
         {
             Application::Log("Connection handshake failed at step 3");
             return 1;

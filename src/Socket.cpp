@@ -46,7 +46,8 @@ int Socket::SendData(std::string data, IPAddress destIP)
     size_t dataLength = data.length();
 
     //Create IP header
-    IPAddress localIP = Utils::GetLocalIP();
+    // IPAddress localIP = Utils::GetLocalIP();
+    IPAddress localIP = IPAddress("127.0.0.1", NetworkNumber<Port>(-1, NumberType::Host));
     IPHeader ipHeader = Utils::CreateIPHeader(localIP, destIP, dataLength);
 
     //Calculate TCP header checksum and convert to network
@@ -73,38 +74,29 @@ int Socket::SendData(std::string data, IPAddress destIP)
     sockaddr_in addr = destIP.GetAsNetworkStruct();
     int bytesSent = sendto(sock, packet, packetSize, 0, (sockaddr*)&addr, sizeof(sockaddr_in));
 
-    if (bytesSent > 0)
-        Application::Log("Sent packet: " + Utils::PacketToString(ipHeader, tcpHeader, data) + " " + to_string(bytesSent) + " bytes");
-    else if (bytesSent < 0)
+    if (bytesSent < 0)
     {
         Application::Log("Sending failed: " + Utils::GetSocketErrorString());
         return 1;
     }
+    Application::Log("Sent packet: " + Utils::PacketToString(ipHeader, tcpHeader, data) + " " + to_string(bytesSent) + " bytes");
 
-    tcpHeader.seq = htonl(tcpHeader.seq + dataLength != 0 ? dataLength : 1);
+    //Update next tpc seq
+    tcpHeader.seq += dataLength + 1;
 
     return 0;
 }
 
-int Socket::ReceiveData(string* receivedData, IPAddress* senderIP, bool receiveFromAll)
+int Socket::ReceiveData(string* receivedData, IPAddress* senderIP)
 {
     NetworkNumber<Port> receivedTCPHeaderDestPort = NetworkNumber<Port>(-1, NumberType::Host);
     while (receivedTCPHeaderDestPort.GetAsHost() != tcpHeader.source)
     {
         char buffer[65536];
-        int bytesReceived;
 
-        sockaddr_in senderAddr;
-        if (receiveFromAll)
-        {
-            socklen_t senderAddrSize = sizeof(senderAddr);
-            bytesReceived = recvfrom(sock, buffer, sizeof(buffer), 0, (sockaddr*)&senderAddr, &senderAddrSize);
-        }else
-        {
-            senderAddr = senderIP->GetAsNetworkStruct();
-            socklen_t serverAddrSize = sizeof(senderAddr);
-            bytesReceived = recvfrom(sock, buffer, sizeof(buffer), 0, (sockaddr*)&senderAddr, &serverAddrSize);
-        }
+        sockaddr_in senderAddr{};
+        socklen_t senderAddrSize = sizeof(senderAddr);
+        int bytesReceived = recvfrom(sock, buffer, sizeof(buffer), 0, (sockaddr*)&senderAddr, &senderAddrSize);
 
         if (bytesReceived > 0)
         {
@@ -121,31 +113,22 @@ int Socket::ReceiveData(string* receivedData, IPAddress* senderIP, bool receiveF
                 continue;
 
             //Fill up senderIP to return to caller
-            if (receiveFromAll)
-            {
-                senderAddr.sin_port = receivedTCPHeaderDestPort.GetAsNetwork();
-                *senderIP = IPAddress(senderAddr);
-            }
+            senderAddr.sin_port = htons(receivedTCPHeader.source);
+            *senderIP = IPAddress(senderAddr);
 
             //Get data from packet
             char* data = (char*)Utils::AddToPointer(&buffer, sizeof(IPHeader) + sizeof(TCPHeader));
             int dataLength = bytesReceived - sizeof(IPHeader) - sizeof(TCPHeader);
             string dataString(data, dataLength);
-
-            Application::Log("Received packet: " + Utils::PacketToString(receivedIPHeader, receivedTCPHeader, dataString) + " " + to_string(bytesReceived) + " bytes");
-            // if (tcpHeader.ack != receivedTcpHeader.seq)
-            // {
-            //     Application::Log("Receiving failed: sequence number does not match acknowledgment number", isServer);
-            //     return 1;
-            // }
-
             *receivedData = dataString;
+            Application::Log("Received packet: " + Utils::PacketToString(receivedIPHeader, receivedTCPHeader, dataString) + " " + to_string(bytesReceived) + " bytes");
 
-            receivedTCPHeader.ack = htonl(ntohl(receivedTCPHeader.seq) + (dataLength != 0 ? dataLength : 1));
+            //Update next tpc ack
+            tcpHeader.ack = receivedTCPHeader.seq + dataLength + 1;
         }
         else if (bytesReceived < 0)
         {
-            Application::Log("Receiving failed");
+            Application::Log("Receiving failed: " + Utils::GetSocketErrorString());
             return 1;
         }
     }
