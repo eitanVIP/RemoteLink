@@ -3,19 +3,17 @@
 #include <string>
 #include "IPAddress.h"
 #include "NetworkNumber.h"
-#include "TCPHeader.h"
+#include "TCPPacket.h"
 
 class Socket {
 private:
     int sock;
-    TCPHeader tcpHeader;
 
 public:
     int CreateSocket();
     int Bind(NetworkNumber<Port> port);
     int Connect(IPAddress IP);
-    int SendData(std::string data, IPAddress destIP);
-    int ReceiveData(string* receivedData, IPAddress* senderIP);
-    TCPHeader& GetTCPHeader();
+    int SendPacket(TCPPacket tcpPacket, IPAddress destIP) const;
+    int ReceivePacket(TCPPacket* receivedData, IPAddress* senderIP, NetworkNumber<Port> port) const;
     void Close();
 };

@@ -1,12 +1,18 @@
 #pragma once
-#include "IPAddress.h"
 
-namespace Server
+#include "IPAddress.h"
+#include "TCPSession.h"
+
+class Server : public TCPSession
 {
-    int Start(NetworkNumber<unsigned short> port);
+private:
+    bool requested = false;
+
+public:
+    int Start(NetworkNumber<Port> port);
     bool IsRequested(IPAddress* client);
     int AcceptConnection();
-    bool IsConnected();
     int Update();
     void Close();
-}
+    void OnDataReceived(string data) override = 0;
+};

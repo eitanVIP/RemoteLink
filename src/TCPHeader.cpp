@@ -36,31 +36,31 @@ void TCPHeader::SetDataOffset(uint8_t offsetWords) {
     flags |= ((offsetWords & 0x0F) << 12);
 }
 
-bool TCPHeader::GetFlagFIN() { 
+bool TCPHeader::GetFlagFIN() const {
     return (flags & (1 << 0)) != 0;
 }
 
-bool TCPHeader::GetFlagSYN() { 
+bool TCPHeader::GetFlagSYN() const {
     return (flags & (1 << 1)) != 0;
 }
 
-bool TCPHeader::GetFlagRST() { 
+bool TCPHeader::GetFlagRST() const {
     return (flags & (1 << 2)) != 0;
 }
 
-bool TCPHeader::GetFlagPSH() { 
+bool TCPHeader::GetFlagPSH() const {
     return (flags & (1 << 3)) != 0;
 }
 
-bool TCPHeader::GetFlagACK() { 
+bool TCPHeader::GetFlagACK() const {
     return (flags & (1 << 4)) != 0;
 }
 
-bool TCPHeader::GetFlagURG() { 
+bool TCPHeader::GetFlagURG() const {
     return (flags & (1 << 5)) != 0;
 }
 
-uint8_t TCPHeader::GetDataOffset() {
+uint8_t TCPHeader::GetDataOffset() const {
     return (flags >> 12) & 0x0F;
 }
 

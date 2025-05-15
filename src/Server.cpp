@@ -1,106 +1,103 @@
 #include "Server.h"
-#include <mutex>
-#include <queue>
 #include <string>
 #include <thread>
 #include "Application.h"
 #include "NetworkNumber.h"
 #include "TCPHeader.h"
+#include "TCPSession.h"
 #include "Utils.h"
 
 using namespace std;
 
-namespace Server
+int Server::Start(NetworkNumber<Port> port)
 {
-    Socket socket;
-    IPAddress clientAddress;
-    
-    bool connected = false;
-    bool requested = false;
+    socket.CreateSocket();
+    socket.Bind(port);
+    this->port = port;
 
-    mutex mtx;
-    queue<string> dataQueue;
+    Utils::CreateInitialTCPHeader(header, port, NetworkNumber<Port>(0, NumberType::Host));
 
-    int Start(NetworkNumber<Port> port)
+    TCPPacket packet;
+    while (!packet.header.GetFlagSYN())
     {
-        socket.CreateSocket();
-        socket.Bind(port);
-
-        Utils::CreateInitialTCPHeader(socket.GetTCPHeader(), port, NetworkNumber<Port>(0, NumberType::Host));
-
-        string data;
-        if (socket.ReceiveData(&data, &clientAddress) != 0)
+        if (socket.ReceivePacket(&packet, &destIP, port) != 0)
         {
             Application::Log("Connection handshake failed at step 1");
             return 1;
         }
-        socket.GetTCPHeader().dest = clientAddress.GetPort().GetAsHost();
-
-        requested = true;
-        Application::Log("Received Connection request");
-        return 0;
+        if (!packet.header.GetFlagSYN())
+            Application::Log("Connection handshake failed at step 1: expected SYN");
     }
+    header.dest = destIP.GetPort().GetAsHost();
 
-    bool IsRequested(IPAddress* client)
+    requested = true;
+    Application::Log("Received Connection request");
+    return 0;
+}
+
+bool Server::IsRequested(IPAddress* client)
+{
+    if (requested)
+        *client = destIP;
+
+    return requested;
+}
+
+int Server::AcceptConnection()
+{
+    if (!requested)
+        return 1;
+
+    header.SetFlagACK(true);
+    if (socket.SendPacket({header, ""}, destIP) != 0)
     {
-        if (requested)
-            *client = clientAddress;
-
-        return requested;
+        Application::Log("Connection handshake failed at step 2");
+        return 1;
     }
 
-    int AcceptConnection()
+    TCPPacket packet;
+    IPAddress addr;
+    if (socket.ReceivePacket(&packet, &addr, port) != 0)
     {
-        if (!requested)
-            return 1;
-
-        socket.GetTCPHeader().SetFlagACK(true);
-        if (socket.SendData("sigma", clientAddress) != 0)
-        {
-            Application::Log("Connection handshake failed at step 2");
-            return 1;
-        }
-
-        string data;
-        IPAddress addr;
-        if (socket.ReceiveData(&data, &addr) != 0)
-        {
-            Application::Log("Connection handshake failed at step 3");
-            return 1;
-        }
-
-        socket.GetTCPHeader().SetFlagSYN(false);
-        socket.GetTCPHeader().SetFlagACK(false);
-
-        connected = true;
-        requested = false;
-
-        Application::Log("Connection established");
-
-        thread serverUpdate([]
-        {
-            while (Update() == 0);
-        });
-        serverUpdate.detach();
-        
-        return 0;
+        Application::Log("Connection handshake failed at step 3");
+        return 1;
     }
 
-    bool IsConnected()
+    header.SetFlagSYN(false);
+    header.SetFlagACK(false);
+
+    connected = true;
+    requested = false;
+
+    Application::Log("Connection established");
+
+    thread serverUpdate([this]
     {
-        return connected;
-    }
+        while (Update() == 0);
+    });
+    serverUpdate.detach();
 
-    int Update() {
-        string data;
-        IPAddress addr;
-        return socket.ReceiveData(&data, &addr);
-    }
+    return 0;
+}
 
-    void Close()
-    {
-        requested = false;
-        connected = false;
-        socket.Close();
-    }
+int Server::Update() {
+    TCPPacket packet;
+    IPAddress addr;
+    socket.ReceivePacket(&packet, &addr, port);
+    HandlePacket(packet);
+
+    RetransmitIfTimeout();
+
+    return 0;
+}
+void Server::OnDataReceived(string data)
+{
+    Application::Log(data);
+}
+
+void Server::Close()
+{
+    requested = false;
+    connected = false;
+    socket.Close();
 }

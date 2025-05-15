@@ -41,9 +41,9 @@ int Socket::Bind(NetworkNumber<Port> port)
     return 0;
 }
 
-int Socket::SendData(std::string data, IPAddress destIP)
+int Socket::SendPacket(TCPPacket tcpPacket, IPAddress destIP) const
 {
-    size_t dataLength = data.length();
+    size_t dataLength = tcpPacket.data.length();
 
     //Create IP header
     // IPAddress localIP = Utils::GetLocalIP();
@@ -51,8 +51,8 @@ int Socket::SendData(std::string data, IPAddress destIP)
     IPHeader ipHeader = Utils::CreateIPHeader(localIP, destIP, dataLength);
 
     //Calculate TCP header checksum and convert to network
-    tcpHeader.check = Utils::CalculateTCPChecksum(&tcpHeader, sizeof(TCPHeader) + dataLength, localIP, destIP);
-    tcpHeader.ConvertToNetworkOrder();
+    tcpPacket.header.check = Utils::CalculateTCPChecksum(&tcpPacket.header, sizeof(TCPHeader) + dataLength, localIP, destIP);
+    tcpPacket.header.ConvertToNetworkOrder();
 
     // Create a buffer to hold the entire packet (IP header + TCP header + data)
     size_t packetSize = sizeof(IPHeader) + sizeof(TCPHeader) + dataLength;
@@ -62,13 +62,13 @@ int Socket::SendData(std::string data, IPAddress destIP)
     memcpy(packet, &ipHeader, sizeof(IPHeader));
 
     // Copy TCP header after the IP header
-    memcpy(Utils::AddToPointer(packet, sizeof(IPHeader)), &tcpHeader, sizeof(TCPHeader));
+    memcpy(Utils::AddToPointer(packet, sizeof(IPHeader)), &tcpPacket.header, sizeof(TCPHeader));
 
     // Copy the data after the TCP header
-    memcpy(Utils::AddToPointer(packet, sizeof(IPHeader) + sizeof(TCPHeader)), &data[0], dataLength);
+    memcpy(Utils::AddToPointer(packet, sizeof(IPHeader) + sizeof(TCPHeader)), &tcpPacket.data[0], dataLength);
 
     //Convert TCP header back to host
-    tcpHeader.ConvertToHostOrder();
+    tcpPacket.header.ConvertToHostOrder();
 
     //Send data and check for errors
     sockaddr_in addr = destIP.GetAsNetworkStruct();
@@ -79,18 +79,15 @@ int Socket::SendData(std::string data, IPAddress destIP)
         Application::Log("Sending failed: " + Utils::GetSocketErrorString());
         return 1;
     }
-    Application::Log("Sent packet: " + Utils::PacketToString(ipHeader, tcpHeader, data) + " " + to_string(bytesSent) + " bytes");
-
-    //Update next tpc seq
-    tcpHeader.seq += dataLength + 1;
+    Application::Log("Sent packet: " + Utils::PacketToString(ipHeader, tcpPacket.header, tcpPacket.data) + " " + to_string(bytesSent) + " bytes");
 
     return 0;
 }
 
-int Socket::ReceiveData(string* receivedData, IPAddress* senderIP)
+int Socket::ReceivePacket(TCPPacket* receivedPacket, IPAddress* senderIP, NetworkNumber<Port> port) const
 {
     NetworkNumber<Port> receivedTCPHeaderDestPort = NetworkNumber<Port>(-1, NumberType::Host);
-    while (receivedTCPHeaderDestPort.GetAsHost() != tcpHeader.source)
+    while (receivedTCPHeaderDestPort.GetAsHost() != port.GetAsHost())
     {
         char buffer[65536];
 
@@ -109,7 +106,7 @@ int Socket::ReceiveData(string* receivedData, IPAddress* senderIP)
             receivedTCPHeaderDestPort = NetworkNumber(receivedTCPHeader.dest, NumberType::Host);
 
             //Check if the received packet was sent to our port
-            if (receivedTCPHeaderDestPort.GetAsHost() != tcpHeader.source)
+            if (receivedTCPHeaderDestPort.GetAsHost() != port.GetAsHost())
                 continue;
 
             //Fill up senderIP to return to caller
@@ -120,11 +117,9 @@ int Socket::ReceiveData(string* receivedData, IPAddress* senderIP)
             char* data = (char*)Utils::AddToPointer(&buffer, sizeof(IPHeader) + sizeof(TCPHeader));
             int dataLength = bytesReceived - sizeof(IPHeader) - sizeof(TCPHeader);
             string dataString(data, dataLength);
-            *receivedData = dataString;
-            Application::Log("Received packet: " + Utils::PacketToString(receivedIPHeader, receivedTCPHeader, dataString) + " " + to_string(bytesReceived) + " bytes");
 
-            //Update next tpc ack
-            tcpHeader.ack = receivedTCPHeader.seq + dataLength + 1;
+            *receivedPacket = {receivedTCPHeader, dataString};
+            Application::Log("Received packet: " + Utils::PacketToString(receivedIPHeader, receivedTCPHeader, dataString) + " " + to_string(bytesReceived) + " bytes");
         }
         else if (bytesReceived < 0)
         {
@@ -153,9 +148,4 @@ int Socket::Connect(IPAddress IP)
     }
 
     return 0;
-}
-
-TCPHeader& Socket::GetTCPHeader()
-{
-    return tcpHeader;
 }

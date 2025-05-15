@@ -21,13 +21,13 @@ struct TCPHeader
     void SetFlagURG(bool val);
     void SetDataOffset(uint8_t offsetWords = 5);
 
-    bool GetFlagFIN();
-    bool GetFlagSYN();
-    bool GetFlagRST();
-    bool GetFlagPSH();
-    bool GetFlagACK();
-    bool GetFlagURG();
-    uint8_t GetDataOffset();
+    bool GetFlagFIN() const;
+    bool GetFlagSYN() const;
+    bool GetFlagRST() const;
+    bool GetFlagPSH() const;
+    bool GetFlagACK() const;
+    bool GetFlagURG() const;
+    uint8_t GetDataOffset() const;
 
     void ConvertToNetworkOrder();
     void ConvertToHostOrder();
