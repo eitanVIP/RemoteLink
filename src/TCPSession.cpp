@@ -1,8 +1,9 @@
 #include "TCPSession.h"
 #include <chrono>
 #include <bits/this_thread_sleep.h>
+#include "Application.h"
 
-double GetTimeMillis() {
+double TCPSession::GetTimeMillis() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
                std::chrono::steady_clock::now().time_since_epoch()
            ).count();
@@ -30,13 +31,12 @@ void TCPSession::HandlePacket(const TCPPacket& packet)
             else
                 ++it;
         }
+        Application::Log("Received ack until byte " + to_string(packetAck));
         return;
     }
 
     if (packetSeq == expectedSeq) {
         OnDataReceived(packet.data);
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-        SendAck(expectedSeq);
         expectedSeq += packetLen;
 
         while (packetBuffer.count(expectedSeq)) {
@@ -45,13 +45,19 @@ void TCPSession::HandlePacket(const TCPPacket& packet)
             packetBuffer.erase(expectedSeq);
             expectedSeq += nextPacket.data.size();
         }
+
+        SendAck(expectedSeq);
     }
     else if (packetSeq > expectedSeq) {
         packetBuffer[packetSeq] = packet;
         SendAck(expectedSeq);
+        Application::Log("Received out of order packet with seq " + to_string(packetSeq) + ", storing packet in buffer");
     }
     else
+    {
         SendAck(expectedSeq);
+        Application::Log("Received out of order packet with seq " + to_string(packetSeq) + ", ignoring packet");
+    }
 }
 
 void TCPSession::RetransmitIfTimeout()
@@ -69,7 +75,9 @@ void TCPSession::RetransmitIfTimeout()
 void TCPSession::SendData(const string& data)
 {
     header.seq = mySeq;
-    socket.SendPacket({header, data}, destIP);
+    TCPPacket packet = {header, data};
+    socket.SendPacket(packet, destIP);
+    unackedPackets[mySeq] = {packet, GetTimeMillis()};
     mySeq += data.size();
 }
 

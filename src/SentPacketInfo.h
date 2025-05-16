@@ -1,4 +1,5 @@
 #pragma once
+
 #include "TCPPacket.h"
 
 struct SentPacketInfo

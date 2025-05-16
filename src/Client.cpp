@@ -74,6 +74,7 @@ int Client::Update()
 int Client::SendMessageToServer(string message)
 {
     SendData(message);
+
     return 0;
 }
 

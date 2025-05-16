@@ -8,6 +8,7 @@
 class TCPSession {
 public:
     virtual ~TCPSession() = default;
+    bool IsConnected();
 
 protected:
     Socket socket = {};
@@ -29,7 +30,5 @@ protected:
     void SendData(const string& data);
     void Finish();
     virtual void OnDataReceived(string data) = 0;
-
-public:
-    bool IsConnected();
+    double GetTimeMillis();
 };
