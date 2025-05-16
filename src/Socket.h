@@ -16,4 +16,5 @@ public:
     int SendPacket(TCPPacket tcpPacket, IPAddress destIP) const;
     int ReceivePacket(TCPPacket* receivedData, IPAddress* senderIP, NetworkNumber<Port> port) const;
     void Close();
+    int SetBlockingMode(bool block);
 };

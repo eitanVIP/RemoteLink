@@ -14,5 +14,5 @@ public:
     int AcceptConnection();
     int Update();
     void Close();
-    void OnDataReceived(string data) override = 0;
+    void OnDataReceived(string data) override;
 };

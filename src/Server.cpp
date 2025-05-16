@@ -18,6 +18,7 @@ int Server::Start(NetworkNumber<Port> port)
     Utils::CreateInitialTCPHeader(header, port, NetworkNumber<Port>(0, NumberType::Host));
 
     TCPPacket packet;
+    packet.header.SetFlagSYN(false);
     while (!packet.header.GetFlagSYN())
     {
         if (socket.ReceivePacket(&packet, &destIP, port) != 0)
@@ -71,6 +72,7 @@ int Server::AcceptConnection()
 
     Application::Log("Connection established");
 
+    socket.SetBlockingMode(false);
     thread serverUpdate([this]
     {
         while (Update() == 0);
@@ -83,13 +85,14 @@ int Server::AcceptConnection()
 int Server::Update() {
     TCPPacket packet;
     IPAddress addr;
-    socket.ReceivePacket(&packet, &addr, port);
-    HandlePacket(packet);
+    if (socket.ReceivePacket(&packet, &addr, port) == 0)
+        HandlePacket(packet);
 
     RetransmitIfTimeout();
 
     return 0;
 }
+
 void Server::OnDataReceived(string data)
 {
     Application::Log(data);

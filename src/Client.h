@@ -1,12 +1,14 @@
 #pragma once
 
 #include "IPAddress.h"
+#include "TCPSession.h"
 
-namespace Client
+class Client : public TCPSession
 {
+public:
     int Connect(IPAddress address);
     int Update();
-    bool IsConnected();
     int SendMessageToServer(string message);
     void Disconnect();
-}
+    void OnDataReceived(string data) override;
+};

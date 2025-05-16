@@ -5,6 +5,7 @@
 #include <cmath>
 #include <sstream>
 #include <ifaddrs.h>
+#include <fcntl.h>
 
 int Socket::CreateSocket()
 {
@@ -122,10 +123,7 @@ int Socket::ReceivePacket(TCPPacket* receivedPacket, IPAddress* senderIP, Networ
             Application::Log("Received packet: " + Utils::PacketToString(receivedIPHeader, receivedTCPHeader, dataString) + " " + to_string(bytesReceived) + " bytes");
         }
         else if (bytesReceived < 0)
-        {
-            Application::Log("Receiving failed: " + Utils::GetSocketErrorString());
             return 1;
-        }
     }
 
     return 0;
@@ -144,6 +142,27 @@ int Socket::Connect(IPAddress IP)
     if (err != 0)
     {
         Application::Log("Connection error: " + Utils::GetSocketErrorString());
+        return 1;
+    }
+
+    return 0;
+}
+
+int Socket::SetBlockingMode(bool block)
+{
+    int flags = fcntl(sock, F_GETFL, 0);
+    if (flags == -1) {
+        Application::Log("Set socket blocking mode failed");
+        return 1;
+    }
+
+    if (block)
+        flags &= ~O_NONBLOCK;
+    else
+        flags |= O_NONBLOCK;
+
+    if (fcntl(sock, F_SETFL, flags) == -1) {
+        Application::Log("Set socket blocking mode failed");
         return 1;
     }
 

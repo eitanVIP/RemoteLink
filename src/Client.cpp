@@ -1,73 +1,89 @@
 #include "Client.h"
 #include <string>
+#include <thread>
+
 #include "Application.h"
 #include "Socket.h"
-#include "TCPHeader.h"
 #include "Utils.h"
 
 using namespace std;
 
-namespace Client
+int Client::Connect(IPAddress address)
 {
-    bool connected = false;
-    Socket socket;
-    IPAddress serverAddress;
-    
-    int Connect(IPAddress address)
+    destIP = address;
+
+    socket.CreateSocket();
+    socket.Connect(address);
+
+    this->port = NetworkNumber<Port>(Utils::GetRandomPort(), NumberType::Host);
+
+    Utils::CreateInitialTCPHeader(header, port, address.GetPort());
+
+    if (socket.SendPacket({header, ""}, destIP) != 0)
     {
-        serverAddress = address;
+        Application::Log("Connection handshake failed at step 1");
+        return 1;
+    }
 
-        socket.CreateSocket();
-        socket.Connect(address);
-
-        Utils::CreateInitialTCPHeader(socket.GetTCPHeader(), NetworkNumber<Port>(Utils::GetRandomPort(), NumberType::Host), address.GetPort());
-
-        if (socket.SendData("sigma", address) != 0)
-        {
-            Application::Log("Connection handshake failed at step 1");
-            return 1;
-        }
-
-        string data;
-        IPAddress addr;
-        if (socket.ReceiveData(&data, &addr) != 0)
+    TCPPacket packet;
+    while (!packet.header.GetFlagSYN())
+    {
+        if (socket.ReceivePacket(&packet, &destIP, port) != 0)
         {
             Application::Log("Connection handshake failed at step 2");
             return 1;
         }
-
-        socket.GetTCPHeader().SetFlagSYN(false);
-        socket.GetTCPHeader().SetFlagACK(true);
-        if (socket.SendData("sigma", address) != 0)
-        {
-            Application::Log("Connection handshake failed at step 3");
-            return 1;
-        }
-        socket.GetTCPHeader().SetFlagACK(false);
-
-        connected = true;
-        Application::Log("Connection established");
-        return 0;
+        if (!packet.header.GetFlagSYN())
+            Application::Log("Connection handshake failed at step 1: expected SYN");
     }
 
-    int Update()
+    header.SetFlagSYN(false);
+    header.SetFlagACK(true);
+    if (socket.SendPacket({header, ""}, destIP) != 0)
     {
-        return 0;
+        Application::Log("Connection handshake failed at step 3");
+        return 1;
     }
+    header.SetFlagACK(false);
 
-    bool IsConnected()
-    {
-        return connected;
-    }
+    connected = true;
+    Application::Log("Connection established");
 
-    int SendMessageToServer(string message)
+    socket.SetBlockingMode(false);
+    thread clientUpdate([this]
     {
-        return socket.SendData(message, serverAddress);
-    }
+        while (Update() == 0);
+    });
+    clientUpdate.detach();
 
-    void Disconnect()
-    {
-        connected = false;
-        socket.Close();
-    }
+    return 0;
+}
+
+int Client::Update()
+{
+    TCPPacket packet;
+    IPAddress addr;
+    if (socket.ReceivePacket(&packet, &addr, port) == 0)
+        HandlePacket(packet);
+
+    RetransmitIfTimeout();
+
+    return 0;
+}
+
+int Client::SendMessageToServer(string message)
+{
+    SendData(message);
+    return 0;
+}
+
+void Client::Disconnect()
+{
+    connected = false;
+    socket.Close();
+}
+
+void Client::OnDataReceived(string data)
+{
+    Application::Log(data);
 }

@@ -1,10 +1,14 @@
-#include <map>
+#pragma once
 
+#include <map>
 #include "SentPacketInfo.h"
 #include "Socket.h"
 #include "TCPPacket.h"
 
 class TCPSession {
+public:
+    virtual ~TCPSession() = default;
+
 protected:
     Socket socket = {};
     IPAddress destIP;
@@ -18,12 +22,14 @@ protected:
     std::map<uint32_t, SentPacketInfo> unackedPackets;
     const double retransmitTimeoutMs = 1000;
 
+    TCPSession();
     void SendAck(uint32_t ackNum);
     void HandlePacket(const TCPPacket& packet);
     void RetransmitIfTimeout();
     void SendData(const string& data);
     void Finish();
-    bool IsConnected();
-
     virtual void OnDataReceived(string data) = 0;
+
+public:
+    bool IsConnected();
 };

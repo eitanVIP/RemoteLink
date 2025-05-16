@@ -13,6 +13,8 @@ using namespace std;
 namespace Application {
 	string log;
     mutex mtx;
+	Server server;
+	Client client;
 	
 	int Start()
 	{
@@ -35,7 +37,7 @@ namespace Application {
 		{
 			thread clientConnect([](IPAddress address)
 			{
-				Client::Connect(address);
+				client.Connect(address);
 			}, address);
 			clientConnect.detach();
 		}
@@ -47,19 +49,19 @@ namespace Application {
 		{
 			thread serverStart([](NetworkNumber<unsigned short> port)
 			{
-				Server::Start(port);
+				server.Start(port);
 			}, *port);
 			serverStart.detach();
 		}
 
 		SeparatorText("Incoming Requests");
-		IPAddress client;
-		if (Server::IsRequested(&client))
+		IPAddress clientAddr;
+		if (server.IsRequested(&clientAddr))
 		{
-			Text(client.GetAsString().c_str());
+			Text(clientAddr.GetAsString().c_str());
 			SameLine();
 			if (Button("Accept"))
-				Server::AcceptConnection();
+				server.AcceptConnection();
 		}
 
 		SeparatorText("Logs");
@@ -73,8 +75,8 @@ namespace Application {
 		InputText("Message", message, IM_ARRAYSIZE(message));
 		if (Button("Send Message"))
 		{
-			if (Client::IsConnected())
-				Client::SendMessageToServer(message);
+			if (client.IsConnected())
+				client.SendMessageToServer(message);
 		}
 		End();
 	}
@@ -98,7 +100,7 @@ namespace Application {
 	}
 
 	void Close(){
-		Server::Close();
-		Client::Disconnect();
+		server.Close();
+		client.Disconnect();
 	}
 }

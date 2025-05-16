@@ -1,5 +1,6 @@
 #include "TCPSession.h"
 #include <chrono>
+#include <bits/this_thread_sleep.h>
 
 double GetTimeMillis() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -34,6 +35,7 @@ void TCPSession::HandlePacket(const TCPPacket& packet)
 
     if (packetSeq == expectedSeq) {
         OnDataReceived(packet.data);
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         SendAck(expectedSeq);
         expectedSeq += packetLen;
 
@@ -82,3 +84,5 @@ bool TCPSession::IsConnected()
 {
     return connected;
 }
+
+TCPSession::TCPSession(): port(NetworkNumber<Port>(-1, NumberType::Host)) {}
