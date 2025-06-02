@@ -1,4 +1,6 @@
 #include "Server.h"
+
+#include <cmath>
 #include <string>
 #include <thread>
 #include "Application.h"
@@ -82,13 +84,45 @@ int Server::AcceptConnection()
     return 0;
 }
 
-int Server::Update() {
+int Server::Update()
+{
     TCPPacket packet;
     IPAddress addr;
     if (socket.ReceivePacket(&packet, &addr, port) == 0)
         HandlePacket(packet);
 
     RetransmitIfTimeout();
+
+    vector<uint8_t> screenshot;
+    Utils::TakeScreenshot(screenshot, 100);
+
+    const int bytesPerChunk = 1500;
+    const int pixelsPerChunk = bytesPerChunk / 4;
+    int pixels = screenshot.size() / 4;
+    int chunks = pixels  / pixelsPerChunk;
+
+    for (int i = 0; i < chunks; ++i)
+    {
+        string data;
+
+        int startPixel = i * pixelsPerChunk;
+        int endPixel = std::min(startPixel + pixelsPerChunk, pixels);
+
+        for (int j = startPixel * 4; j < endPixel * 4; j += 4)
+        {
+            uint8_t b = screenshot[j];
+            uint8_t g = screenshot[j + 1];
+            uint8_t r = screenshot[j + 2];
+            uint8_t a = screenshot[j + 3];
+            data += r;
+            data += g;
+            data += b;
+            data += a;
+        }
+
+        SendData(data);
+    }
+    return 1;
 
     return 0;
 }

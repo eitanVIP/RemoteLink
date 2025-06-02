@@ -1,10 +1,16 @@
 #include "Utils.h"
-#include <cmath>
 #include "Application.h"
+#include "Socket.h"
+
+#include <cmath>
 #include <unistd.h>
 #include <sstream>
 #include <ifaddrs.h>
-#include "Socket.h"
+
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#undef Status  // undefine the X11 macro
+#include <opencv2/opencv.hpp>
 
 namespace Utils
 {
@@ -238,5 +244,62 @@ namespace Utils
         int port = ntohs(addr.sin_port);
         close(sock);
         return port;
+    }
+
+    int TakeScreenshot(std::vector<uint8_t> &pixels, int targetHeight)
+    {
+        Display* display = XOpenDisplay(nullptr);
+        if (!display) {
+            Application::Log("Failed to take a screenshot: can't open display");
+            return 1;
+        }
+
+        Window root = DefaultRootWindow(display);
+        XWindowAttributes gwa;
+        XGetWindowAttributes(display, root, &gwa);
+
+        int width = gwa.width;
+        int height = gwa.height;
+
+        XImage* image = XGetImage(display, root, 0, 0, width, height, AllPlanes, ZPixmap);
+
+        if (!image) {
+            Application::Log("Failed to take a screenshot: can't get image");
+            return 1;
+        }
+
+        // Convert XImage to OpenCV Mat (BGRA 32-bit)
+        cv::Mat mat(height, width, CV_8UC4);
+        for (int y = 0; y < height; ++y) {
+            uint32_t* src_row = (uint32_t*)(image->data + y * image->bytes_per_line);
+            for (int x = 0; x < width; ++x) {
+                uint32_t pixel = src_row[x];
+                cv::Vec4b& bgra = mat.at<cv::Vec4b>(y, x);
+                bgra[0] = (pixel & image->blue_mask);            // Blue
+                bgra[1] = (pixel & image->green_mask) >> 8;      // Green
+                bgra[2] = (pixel & image->red_mask) >> 16;       // Red
+                bgra[3] = 255;                                   // Alpha
+            }
+        }
+
+        // Resize it
+        cv::Mat resized;
+        cv::resize(mat, resized, cv::Size(width / height * targetHeight, targetHeight));
+
+        // Access pixel data
+        pixels = std::vector(resized.datastart, resized.dataend);
+
+        XDestroyImage(image);
+        XCloseDisplay(display);
+        return 0;
+    }
+
+    std::string IntToHexString(int value) {
+        std::stringstream ss;
+        ss << std::setw(2) << std::setfill('0') << std::hex << std::uppercase << value;
+        return ss.str();
+    }
+    int HexStringToInt(const std::string& hexStr) {
+        return std::stoi(hexStr, nullptr, 16);
     }
 }

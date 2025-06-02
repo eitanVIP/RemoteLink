@@ -80,7 +80,10 @@ int Socket::SendPacket(TCPPacket tcpPacket, IPAddress destIP) const
         Application::Log("Sending failed: " + Utils::GetSocketErrorString());
         return 1;
     }
-    Application::Log("Sent packet: " + Utils::PacketToString(ipHeader, tcpPacket.header, tcpPacket.data) + " " + to_string(bytesSent) + " bytes");
+    if (bytesSent - 40 <= 30)
+        Application::Log("Sent packet: " + Utils::PacketToString(ipHeader, tcpPacket.header, tcpPacket.data) + " " + to_string(bytesSent) + " bytes");
+    else
+        Application::Log("Sent packet: " + Utils::PacketToString(ipHeader, tcpPacket.header, "") + " " + to_string(bytesSent) + " bytes");
 
     return 0;
 }
@@ -120,7 +123,11 @@ int Socket::ReceivePacket(TCPPacket* receivedPacket, IPAddress* senderIP, Networ
             string dataString(data, dataLength);
 
             *receivedPacket = {receivedTCPHeader, dataString};
-            Application::Log("Received packet: " + Utils::PacketToString(receivedIPHeader, receivedTCPHeader, dataString) + " " + to_string(bytesReceived) + " bytes");
+            if (bytesReceived - 40 <= 30)
+                Application::Log("Received packet: " + Utils::PacketToString(receivedIPHeader, receivedTCPHeader, dataString) + " " + to_string(bytesReceived) + " bytes");
+            else
+                Application::Log("Received packet: " + Utils::PacketToString(receivedIPHeader, receivedTCPHeader, "") + " " + to_string(bytesReceived) + " bytes");
+
         }
         else if (bytesReceived < 0)
             return 1;

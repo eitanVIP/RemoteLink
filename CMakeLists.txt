@@ -36,11 +36,14 @@ target_include_directories(RemoteLink PRIVATE
         libs/GLFW/include
 )
 
-# Link libraries
-target_link_libraries(RemoteLink PRIVATE glfw)
+# Find OpenCV
+find_package(OpenCV REQUIRED)
+
+# Add include directories
+include_directories(${OpenCV_INCLUDE_DIRS})
 
 # Link Linux system libraries (X11, OpenGL, etc.)
 # Use modern GLVND OpenGL (suppresses CMake warning)
 cmake_policy(SET CMP0072 NEW)
 find_package(OpenGL REQUIRED)
-target_link_libraries(RemoteLink PRIVATE glfw ${OPENGL_LIBRARIES} dl pthread X11 Xrandr Xi Xxf86vm Xcursor)
+target_link_libraries(RemoteLink PRIVATE glfw ${OPENGL_LIBRARIES} ${OpenCV_LIBS} dl pthread X11 Xrandr Xi Xxf86vm Xcursor)

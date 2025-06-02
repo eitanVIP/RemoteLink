@@ -86,5 +86,12 @@ void Client::Disconnect()
 
 void Client::OnDataReceived(string data)
 {
-    Application::Log(data);
+    for (int i = 0; i < data.size(); i += 4)
+    {
+        uint8_t r = data[i];
+        uint8_t g = data[i + 1];
+        uint8_t b = data[i + 2];
+        uint8_t a = data[i + 3];
+        Application::Log(to_string(r) + ", " + to_string(g) + ", " + to_string(b) + ", " + to_string(a));
+    }
 }
