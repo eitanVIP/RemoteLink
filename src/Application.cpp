@@ -2,12 +2,15 @@
 #include <mutex>
 #include <thread>
 #include "Application.h"
+
+#include <GL/gl.h>
+
 #include "Client.h"
 #include "Server.h"
 #include "imgui.h"
 #include "Utils.h"
+#include "Image.h"
 
-using namespace ImGui;
 using namespace std;
 
 namespace Application {
@@ -15,6 +18,7 @@ namespace Application {
     mutex mtx;
 	Server server;
 	Client client;
+	Image lastImage;
 	
 	int Start()
 	{
@@ -22,18 +26,18 @@ namespace Application {
 	}
 	
 	void Update() {
-		DockSpaceOverViewport(0);
+		ImGui::DockSpaceOverViewport(0);
 
-        Begin("Settings");
-		SeparatorText("Connect To Others");
+        ImGui::Begin("Settings");
+		ImGui::SeparatorText("Connect To Others");
 
 		static char addr[20];
-		InputText("Address", addr, IM_ARRAYSIZE(addr));
+		ImGui::InputText("Address", addr, IM_ARRAYSIZE(addr));
 		static char connectPortStr[6];
-		InputText("Connect Port", connectPortStr, IM_ARRAYSIZE(connectPortStr));
+		ImGui::InputText("Connect Port", connectPortStr, IM_ARRAYSIZE(connectPortStr));
 		int connectPort = atoi(connectPortStr);
 		IPAddress address = IPAddress(addr, *new NetworkNumber<Port>(connectPort, NumberType::Host));
-		if (Button("Connect"))
+		if (ImGui::Button("Connect"))
 		{
 			thread clientConnect([](IPAddress address)
 			{
@@ -43,9 +47,9 @@ namespace Application {
 		}
 
 		static char portStr[6];
-		InputText("Port", portStr, IM_ARRAYSIZE(portStr));
+		ImGui::InputText("Port", portStr, IM_ARRAYSIZE(portStr));
 		NetworkNumber<unsigned short>* port = new NetworkNumber<unsigned short>(atoi(portStr), NumberType::Host);
-		if (Button("Open Server"))
+		if (ImGui::Button("Open Server"))
 		{
 			thread serverStart([](NetworkNumber<unsigned short> port)
 			{
@@ -54,31 +58,46 @@ namespace Application {
 			serverStart.detach();
 		}
 
-		SeparatorText("Incoming Requests");
+		ImGui::SeparatorText("Incoming Requests");
 		IPAddress clientAddr;
 		if (server.IsRequested(&clientAddr))
 		{
-			Text(clientAddr.GetAsString().c_str());
-			SameLine();
-			if (Button("Accept"))
+			ImGui::Text(clientAddr.GetAsString().c_str());
+			ImGui::SameLine();
+			if (ImGui::Button("Accept"))
 				server.AcceptConnection();
 		}
 
-		SeparatorText("Logs");
+		ImGui::SeparatorText("Logs");
 		if (!log.empty())
-			Text(log.c_str());
-		End();
+			ImGui::Text(log.c_str());
+		ImGui::End();
 
-		Begin("Screen");
-		SeparatorText("Chat");
-		static char message[25];
-		InputText("Message", message, IM_ARRAYSIZE(message));
-		if (Button("Send Message"))
+		ImGui::Begin("Screen");
+
+		if (!client.GetImages().empty())
 		{
-			if (client.IsConnected())
-				client.SendMessageToServer(message);
+			Log("Popped image from queue");
+			lastImage = client.GetImages().front();
+			client.GetImages().pop();
 		}
-		End();
+
+		if (!lastImage.GetPixels().empty())
+		{
+			GLuint textureID;
+			glGenTextures(1, &textureID);
+			glBindTexture(GL_TEXTURE_2D, textureID);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, lastImage.GetWidth(), lastImage.GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, lastImage.GetValues().data());
+
+			ImGui::Image(textureID, ImVec2(lastImage.GetWidth(), lastImage.GetHeight()));
+		}
+
+		ImGui::End();
 	}
 
 	void Log(string msg)

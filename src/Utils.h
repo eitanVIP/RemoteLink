@@ -5,7 +5,8 @@
 #include "TCPHeader.h"
 #include "IPHeader.h"
 #include <cstring>
-#include <vector>
+
+#include "Image.h"
 #include "Socket.h"
 
 namespace Utils
@@ -25,7 +26,7 @@ namespace Utils
     uint16_t CalculateTCPChecksum(TCPHeader* headerPtr, size_t tcpLength, IPAddress srcIP, IPAddress destIP);
     void CreateInitialTCPHeader(TCPHeader& header, NetworkNumber<Port> sourcePort, NetworkNumber<Port> destPort);
     int GetRandomPort();
-    int TakeScreenshot(std::vector<uint8_t> &pixels, int targetHeight);
+    int TakeScreenshot(Image& pixels, int targetHeight);
     std::string IntToHexString(int value);
     int HexStringToInt(const std::string& hexStr);
 }

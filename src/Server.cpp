@@ -4,6 +4,7 @@
 #include <string>
 #include <thread>
 #include "Application.h"
+#include "Image.h"
 #include "NetworkNumber.h"
 #include "TCPHeader.h"
 #include "TCPSession.h"
@@ -93,34 +94,22 @@ int Server::Update()
 
     RetransmitIfTimeout();
 
-    vector<uint8_t> screenshot;
+    Image screenshot;
     Utils::TakeScreenshot(screenshot, 100);
 
     const int bytesPerChunk = 1500;
     const int pixelsPerChunk = bytesPerChunk / 4;
-    int pixels = screenshot.size() / 4;
-    int chunks = pixels  / pixelsPerChunk;
+    int pixels = screenshot.Size();
+    int chunks = ceil(pixels / static_cast<double>(pixelsPerChunk));
 
+    SendData("W" + to_string(screenshot.GetWidth()));
+    SendData("H" + to_string(screenshot.GetHeight()));
+    Application::Log(to_string(screenshot.GetValues().size()));
+    Application::Log(to_string(screenshot.GetWidth() * screenshot.GetHeight() * 4));
+    string totalData = screenshot.GetAsString();
     for (int i = 0; i < chunks; ++i)
     {
-        string data;
-
-        int startPixel = i * pixelsPerChunk;
-        int endPixel = std::min(startPixel + pixelsPerChunk, pixels);
-
-        for (int j = startPixel * 4; j < endPixel * 4; j += 4)
-        {
-            uint8_t b = screenshot[j];
-            uint8_t g = screenshot[j + 1];
-            uint8_t r = screenshot[j + 2];
-            uint8_t a = screenshot[j + 3];
-            data += r;
-            data += g;
-            data += b;
-            data += a;
-        }
-
-        SendData(data);
+        SendData(totalData.substr(i * bytesPerChunk, min(bytesPerChunk, pixels * 4 - i * bytesPerChunk)));
     }
     return 1;
 

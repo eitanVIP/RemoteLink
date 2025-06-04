@@ -86,12 +86,46 @@ void Client::Disconnect()
 
 void Client::OnDataReceived(string data)
 {
-    for (int i = 0; i < data.size(); i += 4)
+    if (data[0] == 'W')
     {
-        uint8_t r = data[i];
-        uint8_t g = data[i + 1];
-        uint8_t b = data[i + 2];
-        uint8_t a = data[i + 3];
-        Application::Log(to_string(r) + ", " + to_string(g) + ", " + to_string(b) + ", " + to_string(a));
+        expectedImageWidth = stoi(data.substr(1, data.size() - 1));
+        Application::Log("Expected image width: " + to_string(expectedImageWidth));
+
+        if (expectedImageHeight != 0)
+        {
+            expectedImageSize = expectedImageWidth * expectedImageHeight * 4;
+            Application::Log("Expected image size: " + to_string(expectedImageSize));
+        }
     }
+    else if (data[0] == 'H')
+    {
+        expectedImageHeight = stoi(data.substr(1, data.size() - 1));
+        Application::Log("Expected image height: " + to_string(expectedImageHeight));
+
+        if (expectedImageWidth != 0)
+        {
+            expectedImageSize = expectedImageWidth * expectedImageHeight * 4;
+            Application::Log("Expected image size: " + to_string(expectedImageSize));
+        }
+    }
+    else
+    {
+        imageData += data;
+        imageBytesReceived += data.size();
+
+        Application::Log("Image bytes received: " + to_string(imageBytesReceived));
+
+        if (imageBytesReceived == expectedImageSize)
+        {
+            Application::Log("Received full image");
+            Image image = Image::FromString(imageData, expectedImageWidth, expectedImageHeight);
+            images.push(image);
+            Application::Log("Pushed image to queue");
+        }
+    }
+}
+
+std::queue<Image>& Client::GetImages()
+{
+    return images;
 }

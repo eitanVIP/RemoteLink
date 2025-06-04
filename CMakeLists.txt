@@ -26,6 +26,8 @@ file(GLOB_RECURSE PROJECT_SRC
 add_executable(RemoteLink
         ${PROJECT_SRC}
         ${IMGUI_SRC}
+        src/Image.cpp
+        src/Image.h
 )
 
 # Includes

@@ -246,7 +246,7 @@ namespace Utils
         return port;
     }
 
-    int TakeScreenshot(std::vector<uint8_t> &pixels, int targetHeight)
+    int TakeScreenshot(Image& image, int targetHeight)
     {
         Display* display = XOpenDisplay(nullptr);
         if (!display) {
@@ -261,9 +261,9 @@ namespace Utils
         int width = gwa.width;
         int height = gwa.height;
 
-        XImage* image = XGetImage(display, root, 0, 0, width, height, AllPlanes, ZPixmap);
+        XImage* img = XGetImage(display, root, 0, 0, width, height, AllPlanes, ZPixmap);
 
-        if (!image) {
+        if (!img) {
             Application::Log("Failed to take a screenshot: can't get image");
             return 1;
         }
@@ -271,25 +271,28 @@ namespace Utils
         // Convert XImage to OpenCV Mat (BGRA 32-bit)
         cv::Mat mat(height, width, CV_8UC4);
         for (int y = 0; y < height; ++y) {
-            uint32_t* src_row = (uint32_t*)(image->data + y * image->bytes_per_line);
+            uint32_t* src_row = (uint32_t*)(img->data + y * img->bytes_per_line);
             for (int x = 0; x < width; ++x) {
                 uint32_t pixel = src_row[x];
                 cv::Vec4b& bgra = mat.at<cv::Vec4b>(y, x);
-                bgra[0] = (pixel & image->blue_mask);            // Blue
-                bgra[1] = (pixel & image->green_mask) >> 8;      // Green
-                bgra[2] = (pixel & image->red_mask) >> 16;       // Red
+                bgra[0] = (pixel & img->blue_mask);            // Blue
+                bgra[1] = (pixel & img->green_mask) >> 8;      // Green
+                bgra[2] = (pixel & img->red_mask) >> 16;       // Red
                 bgra[3] = 255;                                   // Alpha
             }
         }
 
         // Resize it
         cv::Mat resized;
-        cv::resize(mat, resized, cv::Size(width / height * targetHeight, targetHeight));
+        int resultedWidth = (double)width / (double)height * (double)targetHeight;
+        cv::resize(mat, resized, cv::Size(resultedWidth, targetHeight));
 
         // Access pixel data
-        pixels = std::vector(resized.datastart, resized.dataend);
+        std::vector pixels(std::vector(resized.datastart, resized.dataend));
+        Image result(pixels, resultedWidth, targetHeight);
+        image = result;
 
-        XDestroyImage(image);
+        XDestroyImage(img);
         XCloseDisplay(display);
         return 0;
     }
