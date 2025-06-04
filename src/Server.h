@@ -15,4 +15,5 @@ public:
     int Update();
     void Close();
     void OnDataReceived(string data) override;
+    void SendScreenshot();
 };

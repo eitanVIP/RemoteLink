@@ -19,9 +19,17 @@ namespace Application {
 	Server server;
 	Client client;
 	Image lastImage;
+	GLuint textureID;
 	
 	int Start()
 	{
+		glGenTextures(1, &textureID);
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 720.0 * 1600.0 / 900.0, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 		return 0;
 	}
 	
@@ -29,6 +37,7 @@ namespace Application {
 		ImGui::DockSpaceOverViewport(0);
 
         ImGui::Begin("Settings");
+
 		ImGui::SeparatorText("Connect To Others");
 
 		static char addr[20];
@@ -68,9 +77,14 @@ namespace Application {
 				server.AcceptConnection();
 		}
 
+		ImGui::SeparatorText("Actions");
+		if (ImGui::Button("Send Screenshot"))
+			server.SendScreenshot();
+
 		ImGui::SeparatorText("Logs");
 		if (!log.empty())
 			ImGui::Text(log.c_str());
+
 		ImGui::End();
 
 		ImGui::Begin("Screen");
@@ -84,15 +98,8 @@ namespace Application {
 
 		if (!lastImage.GetPixels().empty())
 		{
-			GLuint textureID;
-			glGenTextures(1, &textureID);
 			glBindTexture(GL_TEXTURE_2D, textureID);
-
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, lastImage.GetWidth(), lastImage.GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, lastImage.GetValues().data());
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, lastImage.GetWidth(), lastImage.GetHeight(), GL_RGBA, GL_UNSIGNED_BYTE, lastImage.GetValues().data());
 
 			ImGui::Image(textureID, ImVec2(lastImage.GetWidth(), lastImage.GetHeight()));
 		}

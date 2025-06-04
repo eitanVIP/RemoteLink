@@ -94,25 +94,6 @@ int Server::Update()
 
     RetransmitIfTimeout();
 
-    Image screenshot;
-    Utils::TakeScreenshot(screenshot, 100);
-
-    const int bytesPerChunk = 1500;
-    const int pixelsPerChunk = bytesPerChunk / 4;
-    int pixels = screenshot.Size();
-    int chunks = ceil(pixels / static_cast<double>(pixelsPerChunk));
-
-    SendData("W" + to_string(screenshot.GetWidth()));
-    SendData("H" + to_string(screenshot.GetHeight()));
-    Application::Log(to_string(screenshot.GetValues().size()));
-    Application::Log(to_string(screenshot.GetWidth() * screenshot.GetHeight() * 4));
-    string totalData = screenshot.GetAsString();
-    for (int i = 0; i < chunks; ++i)
-    {
-        SendData(totalData.substr(i * bytesPerChunk, min(bytesPerChunk, pixels * 4 - i * bytesPerChunk)));
-    }
-    return 1;
-
     return 0;
 }
 
@@ -126,4 +107,21 @@ void Server::Close()
     requested = false;
     connected = false;
     socket.Close();
+}
+
+void Server::SendScreenshot()
+{
+    Image screenshot;
+    Utils::TakeScreenshot(screenshot, 10);
+
+    const int bytesPerChunk = 1500;
+    const int pixelsPerChunk = bytesPerChunk / 4;
+    int pixels = screenshot.Size();
+    int chunks = ceil(pixels / static_cast<double>(pixelsPerChunk));
+
+    SendData("W" + to_string(screenshot.GetWidth()));
+    SendData("H" + to_string(screenshot.GetHeight()));
+    string totalData = screenshot.GetAsString();
+    for (int i = 0; i < chunks; ++i)
+        SendData(totalData.substr(i * bytesPerChunk, min(bytesPerChunk, pixels * 4 - i * bytesPerChunk)));
 }
