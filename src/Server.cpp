@@ -99,7 +99,7 @@ int Server::Update()
 
 void Server::OnDataReceived(string data)
 {
-    Application::Log(data);
+    // Application::Log(data);
 }
 
 void Server::Close()
@@ -112,15 +112,15 @@ void Server::Close()
 void Server::SendScreenshot()
 {
     Image screenshot;
-    Utils::TakeScreenshot(screenshot, 10);
+    Utils::TakeScreenshot(screenshot, 200);
 
     const int bytesPerChunk = 1500;
     const int pixelsPerChunk = bytesPerChunk / 4;
     int pixels = screenshot.Size();
     int chunks = ceil(pixels / static_cast<double>(pixelsPerChunk));
 
-    SendData("W" + to_string(screenshot.GetWidth()));
-    SendData("H" + to_string(screenshot.GetHeight()));
+    SendData("WIDTH" + to_string(screenshot.GetWidth()));
+    SendData("HEIGHT" + to_string(screenshot.GetHeight()));
     string totalData = screenshot.GetAsString();
     for (int i = 0; i < chunks; ++i)
         SendData(totalData.substr(i * bytesPerChunk, min(bytesPerChunk, pixels * 4 - i * bytesPerChunk)));

@@ -86,7 +86,7 @@ void Client::Disconnect()
 
 void Client::OnDataReceived(string data)
 {
-    if (data[0] == 'W')
+    if (data.substr(0, 5).compare("WIDTH") == 0)
     {
         expectedImageWidth = stoi(data.substr(1, data.size() - 1));
         Application::Log("Expected image width: " + to_string(expectedImageWidth));
@@ -97,7 +97,7 @@ void Client::OnDataReceived(string data)
             Application::Log("Expected image size: " + to_string(expectedImageSize));
         }
     }
-    else if (data[0] == 'H')
+    else if (data.substr(0, 6).compare("HEIGHT") == 0)
     {
         expectedImageHeight = stoi(data.substr(1, data.size() - 1));
         Application::Log("Expected image height: " + to_string(expectedImageHeight));
