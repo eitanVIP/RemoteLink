@@ -35,6 +35,13 @@ void TCPSession::HandlePacket(const TCPPacket& packet)
         return;
     }
 
+    if (packet.header.GetFlagFIN())
+    {
+        OnFinish();
+        Application::Log("Received ack until byte " + to_string(packetAck));
+        return;
+    }
+
     if (packetSeq == expectedSeq) {
         OnDataReceived(packet.data);
         expectedSeq += packetLen;
@@ -86,6 +93,11 @@ void TCPSession::Finish()
     header.seq = mySeq;
     header.SetFlagFIN(true);
     socket.SendPacket({header, ""}, destIP);
+    OnFinish();
+}
+
+void TCPSession::OnFinish()
+{
     socket.Close();
 }
 

@@ -78,10 +78,10 @@ int Client::SendMessageToServer(string message)
     return 0;
 }
 
-void Client::Finish()
+void Client::OnFinish()
 {
     connected = false;
-    TCPSession::Finish();
+    TCPSession::OnFinish();
 }
 
 void Client::OnDataReceived(string data)

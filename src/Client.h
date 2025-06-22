@@ -20,7 +20,7 @@ public:
     int Connect(IPAddress address);
     int Update();
     int SendMessageToServer(string message);
-    void Finish() override;
+    void OnFinish() override;
     void OnDataReceived(string data) override;
     std::queue<Image>& GetImages();
 };

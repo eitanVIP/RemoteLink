@@ -102,11 +102,11 @@ void Server::OnDataReceived(string data)
     // Application::Log(data);
 }
 
-void Server::Finish()
+void Server::OnFinish()
 {
     requested = false;
     connected = false;
-    TCPSession::Finish();
+    TCPSession::OnFinish();
 }
 
 void Server::SendScreenshot()
