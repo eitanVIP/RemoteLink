@@ -1,6 +1,8 @@
 #include "Image.h"
 #include <opencv2/opencv.hpp>
 
+#include "Application.h"
+
 Image::Image()
 {
 
@@ -94,7 +96,7 @@ int Image::GetHeight() const
     return height;
 }
 
-Image Image::Resize(int newHeight)
+int Image::Resize(Image *resized, int newWidth, int newHeight) const
 {
     // Copy data into Mat
     cv::Mat mat(height, width, CV_8UC4);
@@ -110,13 +112,69 @@ Image Image::Resize(int newHeight)
         }
     }
 
-    // Resize it
-    cv::Mat resized;
-    int resultedWidth = (double)width / (double)height * (double)newHeight;
-    cv::resize(mat, resized, cv::Size(resultedWidth, newHeight));
+    cv::Mat sized;
+    if (newHeight != -1 && newWidth == -1)
+    {
+        int resultedWidth = (double)width / (double)height * (double)newHeight;
+        cv::resize(mat, sized, cv::Size(resultedWidth, newHeight));
+    }
+    else if (newHeight == -1 && newWidth != -1)
+    {
+        int resultedHeight = (double)height / (double)width * (double)newWidth;
+        cv::resize(mat, sized, cv::Size(newWidth, resultedHeight));
+    }
+    else if (newHeight != -1 && newWidth != -1)
+        cv::resize(mat, sized, cv::Size(newWidth, newHeight));
+    else
+    {
+        Application::Log("Error resize image: invalid parameters");
+        return 1;
+    }
 
     // Access pixel data
-    std::vector pixels(std::vector(resized.datastart, resized.dataend));
-    Image result(pixels, resultedWidth, newHeight);
-    return result;
+    std::vector pixels(std::vector(sized.datastart, sized.dataend));
+    *resized = Image(pixels, sized.cols, sized.rows);
+    return 0;
+}
+
+int Image::FromCompressedString(std::string str, Image* result)
+{
+    // Decode JPEG string into cv::Mat
+    std::vector<uchar> buffer(str.begin(), str.end());
+    cv::Mat bgr = cv::imdecode(buffer, cv::IMREAD_COLOR);
+
+    if (bgr.empty())
+    {
+        Application::Log("Failed to decompress image");
+        return 1;
+    }
+
+    // Convert BGR to RGBA
+    cv::Mat rgba;
+    cv::cvtColor(bgr, rgba, cv::COLOR_BGR2RGBA);
+
+    // Copy to pixel vector
+    std::vector<std::array<uint8_t, 4>> pixels(bgr.cols * bgr.rows);
+    std::memcpy(pixels.data(), rgba.data, rgba.total() * rgba.elemSize());
+
+    *result = Image(pixels, bgr.cols, bgr.rows);
+    return 0;
+}
+
+std::string Image::Compress(int quality)
+{
+    // Convert to cv::Mat
+    cv::Mat mat(height, width, CV_8UC4, pixels.data());
+
+    // Convert from RGBA to BGR (JPEG doesn't support alpha)
+    cv::Mat bgr;
+    cv::cvtColor(mat, bgr, cv::COLOR_RGBA2BGR);
+
+    // Encode to JPEG
+    std::vector<uchar> buffer;
+    std::vector<int> params = {cv::IMWRITE_JPEG_QUALITY, quality};
+    cv::imencode(".jpg", bgr, buffer, params);
+
+    // Convert to string
+    return std::string(buffer.begin(), buffer.end());
 }

@@ -20,6 +20,8 @@ namespace Application {
 	Client client;
 	Image lastImage;
 	GLuint textureID;
+	static int textureWidth = 0;
+	static int textureHeight = 0;
 	
 	int Start()
 	{
@@ -29,7 +31,7 @@ namespace Application {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 720.0 * 1600.0 / 900.0, 720, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 		return 0;
 	}
 	
@@ -104,12 +106,26 @@ namespace Application {
 		{
 			Log("Popped image from queue");
 			lastImage = client.GetImages().front();
-			lastImage = lastImage.Resize(720);
 			client.GetImages().pop();
+
+			ImVec2 windowSize = ImGui::GetContentRegionAvail();
+			// lastImage.Resize(&lastImage, windowSize.x);
+			Image resized;
+			lastImage.Resize(&resized, windowSize.x);
+			lastImage = resized;
 		}
 
 		if (!lastImage.GetPixels().empty())
 		{
+			if (lastImage.GetWidth() != textureWidth || lastImage.GetHeight() != textureHeight)
+			{
+				textureWidth = lastImage.GetWidth();
+				textureHeight = lastImage.GetHeight();
+
+				glBindTexture(GL_TEXTURE_2D, textureID);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+			}
+
 			glBindTexture(GL_TEXTURE_2D, textureID);
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, lastImage.GetWidth(), lastImage.GetHeight(), GL_RGBA, GL_UNSIGNED_BYTE, lastImage.GetValues().data());
 

@@ -65,7 +65,6 @@ int Client::Update()
     IPAddress addr;
     if (socket.ReceivePacket(&packet, &addr, port) == 0)
         HandlePacket(packet);
-
     RetransmitIfTimeout();
 
     return 0;
@@ -86,27 +85,32 @@ void Client::OnFinish()
 
 void Client::OnDataReceived(string data)
 {
-    if (data.substr(0, 5) == "WIDTH")
+    // if (data.substr(0, 5) == "WIDTH")
+    // {
+    //     expectedImageWidth = stoi(data.substr(5, data.size() - 1));
+    //     Application::Log("Expected image width: " + to_string(expectedImageWidth));
+    //
+    //     if (expectedImageHeight != 0)
+    //     {
+    //         expectedImageSize = expectedImageWidth * expectedImageHeight * 4;
+    //         Application::Log("Expected image size: " + to_string(expectedImageSize));
+    //     }
+    // }
+    // else if (data.substr(0, 6) == "HEIGHT")
+    // {
+    //     expectedImageHeight = stoi(data.substr(6, data.size() - 1));
+    //     Application::Log("Expected image height: " + to_string(expectedImageHeight));
+    //
+    //     if (expectedImageWidth != 0)
+    //     {
+    //         expectedImageSize = expectedImageWidth * expectedImageHeight * 4;
+    //         Application::Log("Expected image size: " + to_string(expectedImageSize));
+    //     }
+    // }
+    if (data.substr(0, 4) == "SIZE")
     {
-        expectedImageWidth = stoi(data.substr(5, data.size() - 1));
-        Application::Log("Expected image width: " + to_string(expectedImageWidth));
-
-        if (expectedImageHeight != 0)
-        {
-            expectedImageSize = expectedImageWidth * expectedImageHeight * 4;
-            Application::Log("Expected image size: " + to_string(expectedImageSize));
-        }
-    }
-    else if (data.substr(0, 6) == "HEIGHT")
-    {
-        expectedImageHeight = stoi(data.substr(6, data.size() - 1));
-        Application::Log("Expected image height: " + to_string(expectedImageHeight));
-
-        if (expectedImageWidth != 0)
-        {
-            expectedImageSize = expectedImageWidth * expectedImageHeight * 4;
-            Application::Log("Expected image size: " + to_string(expectedImageSize));
-        }
+        expectedImageSize = stoi(data.substr(4, data.size() - 1));
+        Application::Log("Expected image size: " + to_string(expectedImageSize));
     }
     else
     {
@@ -118,9 +122,16 @@ void Client::OnDataReceived(string data)
         if (imageBytesReceived == expectedImageSize)
         {
             Application::Log("Received full image");
-            Image image = Image(imageData, expectedImageWidth, expectedImageHeight);
+            // Image image = Image(imageData, expectedImageWidth, expectedImageHeight);
+            Image image;
+            Image::FromCompressedString(imageData, &image);
             images.push(image);
             Application::Log("Pushed image to queue");
+
+            expectedImageSize = 0;
+            imageBytesReceived = 0;
+            // expectedImageWidth = 0;
+            // expectedImageHeight = 0;
         }
     }
 }

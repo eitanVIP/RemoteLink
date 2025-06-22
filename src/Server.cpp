@@ -91,8 +91,9 @@ int Server::Update()
     IPAddress addr;
     if (socket.ReceivePacket(&packet, &addr, port) == 0)
         HandlePacket(packet);
-
     RetransmitIfTimeout();
+
+    SendScreenshot();
 
     return 0;
 }
@@ -112,16 +113,19 @@ void Server::OnFinish()
 void Server::SendScreenshot()
 {
     Image screenshot;
-    Utils::TakeScreenshot(screenshot, 300);
+    Utils::TakeScreenshot(screenshot, 500);
+    std::string screenshotData = screenshot.Compress();
 
     const int bytesPerChunk = 1500;
-    const int pixelsPerChunk = bytesPerChunk / 4;
-    int pixels = screenshot.Size();
-    int chunks = ceil(pixels / static_cast<double>(pixelsPerChunk));
+    // const int pixelsPerChunk = bytesPerChunk / 4;
+    // int pixels = screenshot.Size();
+    // int chunks = ceil(pixels / static_cast<double>(pixelsPerChunk));
+    int chunks = ceil(screenshotData.size() / (double)bytesPerChunk);
 
-    SendData("WIDTH" + to_string(screenshot.GetWidth()));
-    SendData("HEIGHT" + to_string(screenshot.GetHeight()));
-    string totalData = screenshot.GetAsString();
+    SendData("SIZE" + to_string(screenshotData.size()));
     for (int i = 0; i < chunks; ++i)
-        SendData(totalData.substr(i * bytesPerChunk, min(bytesPerChunk, pixels * 4 - i * bytesPerChunk)));
+        SendData(screenshotData.substr(i * bytesPerChunk, min(bytesPerChunk, (int)(screenshotData.size() - i * bytesPerChunk))));
+    // string totalData = screenshot.GetAsString();
+    // for (int i = 0; i < chunks; ++i)
+    //     SendData(screenshotData.substr(i * bytesPerChunk, min(bytesPerChunk, pixels * 4 - i * bytesPerChunk)));
 }

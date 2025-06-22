@@ -16,10 +16,12 @@ public:
     Image(std::vector<std::array<uint8_t, 4>> pixels, int width, int height);
     Image(std::string str, int width, int height);
     std::string GetAsString() const;
+    static int FromCompressedString(std::string str, Image* result);
     size_t Size();
     std::vector<std::array<uint8_t, 4>> GetPixels();
     std::vector<uint8_t> GetValues();
     int GetWidth() const;
     int GetHeight() const;
-    Image Resize(int newHeight);
+    int Resize(Image *resized, int newWidth = -1, int newHeight = -1) const;
+    std::string Compress(int quality = 80);
 };
