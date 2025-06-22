@@ -9,6 +9,7 @@ class TCPSession {
 public:
     virtual ~TCPSession() = default;
     bool IsConnected();
+    virtual void Finish();
 
 protected:
     Socket socket = {};
@@ -28,7 +29,6 @@ protected:
     void HandlePacket(const TCPPacket& packet);
     void RetransmitIfTimeout();
     void SendData(const string& data);
-    void Finish();
     virtual void OnDataReceived(string data) = 0;
     double GetTimeMillis();
 };

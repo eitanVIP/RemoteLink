@@ -78,17 +78,17 @@ int Client::SendMessageToServer(string message)
     return 0;
 }
 
-void Client::Disconnect()
+void Client::Finish()
 {
     connected = false;
-    socket.Close();
+    TCPSession::Finish();
 }
 
 void Client::OnDataReceived(string data)
 {
-    if (data.substr(0, 5).compare("WIDTH") == 0)
+    if (data.substr(0, 5) == "WIDTH")
     {
-        expectedImageWidth = stoi(data.substr(1, data.size() - 1));
+        expectedImageWidth = stoi(data.substr(5, data.size() - 1));
         Application::Log("Expected image width: " + to_string(expectedImageWidth));
 
         if (expectedImageHeight != 0)
@@ -97,9 +97,9 @@ void Client::OnDataReceived(string data)
             Application::Log("Expected image size: " + to_string(expectedImageSize));
         }
     }
-    else if (data.substr(0, 6).compare("HEIGHT") == 0)
+    else if (data.substr(0, 6) == "HEIGHT")
     {
-        expectedImageHeight = stoi(data.substr(1, data.size() - 1));
+        expectedImageHeight = stoi(data.substr(6, data.size() - 1));
         Application::Log("Expected image height: " + to_string(expectedImageHeight));
 
         if (expectedImageWidth != 0)
@@ -118,7 +118,7 @@ void Client::OnDataReceived(string data)
         if (imageBytesReceived == expectedImageSize)
         {
             Application::Log("Received full image");
-            Image image = Image::FromString(imageData, expectedImageWidth, expectedImageHeight);
+            Image image = Image(imageData, expectedImageWidth, expectedImageHeight);
             images.push(image);
             Application::Log("Pushed image to queue");
         }

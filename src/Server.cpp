@@ -102,17 +102,17 @@ void Server::OnDataReceived(string data)
     // Application::Log(data);
 }
 
-void Server::Close()
+void Server::Finish()
 {
     requested = false;
     connected = false;
-    socket.Close();
+    TCPSession::Finish();
 }
 
 void Server::SendScreenshot()
 {
     Image screenshot;
-    Utils::TakeScreenshot(screenshot, 200);
+    Utils::TakeScreenshot(screenshot, 300);
 
     const int bytesPerChunk = 1500;
     const int pixelsPerChunk = bytesPerChunk / 4;

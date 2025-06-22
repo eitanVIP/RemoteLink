@@ -13,7 +13,7 @@ public:
     bool IsRequested(IPAddress* client);
     int AcceptConnection();
     int Update();
-    void Close();
+    void Finish() override;
     void OnDataReceived(string data) override;
     void SendScreenshot();
 };

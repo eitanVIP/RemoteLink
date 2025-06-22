@@ -37,15 +37,14 @@ namespace Application {
 		ImGui::DockSpaceOverViewport(0);
 
         ImGui::Begin("Settings");
-
 		ImGui::SeparatorText("Connect To Others");
 
-		static char addr[20];
-		ImGui::InputText("Address", addr, IM_ARRAYSIZE(addr));
-		static char connectPortStr[6];
-		ImGui::InputText("Connect Port", connectPortStr, IM_ARRAYSIZE(connectPortStr));
-		int connectPort = atoi(connectPortStr);
-		IPAddress address = IPAddress(addr, *new NetworkNumber<Port>(connectPort, NumberType::Host));
+		// static char addr[20];
+		// ImGui::InputText("Address", addr, IM_ARRAYSIZE(addr));
+		// static char connectPortStr[6];
+		// ImGui::InputText("Connect Port", connectPortStr, IM_ARRAYSIZE(connectPortStr));
+		// int connectPort = atoi(connectPortStr);
+		IPAddress address = IPAddress("127.0.0.1", *new NetworkNumber<Port>(8080, NumberType::Host));
 		if (ImGui::Button("Connect"))
 		{
 			thread clientConnect([](IPAddress address)
@@ -55,12 +54,12 @@ namespace Application {
 			clientConnect.detach();
 		}
 
-		static char portStr[6];
-		ImGui::InputText("Port", portStr, IM_ARRAYSIZE(portStr));
-		NetworkNumber<unsigned short>* port = new NetworkNumber<unsigned short>(atoi(portStr), NumberType::Host);
+		// static char portStr[6];
+		// ImGui::InputText("Port", portStr, IM_ARRAYSIZE(portStr));
+		NetworkNumber<Port>* port = new NetworkNumber<Port>(atoi("8080"), NumberType::Host);
 		if (ImGui::Button("Open Server"))
 		{
-			thread serverStart([](NetworkNumber<unsigned short> port)
+			thread serverStart([](NetworkNumber<Port> port)
 			{
 				server.Start(port);
 			}, *port);
@@ -81,6 +80,18 @@ namespace Application {
 		if (ImGui::Button("Send Screenshot"))
 			server.SendScreenshot();
 
+		if (server.IsConnected())
+		{
+			if (ImGui::Button("End Connection"))
+				server.Finish();
+		}
+
+		if (client.IsConnected())
+		{
+			if (ImGui::Button("End Connection"))
+				client.Finish();
+		}
+
 		ImGui::SeparatorText("Logs");
 		if (!log.empty())
 			ImGui::Text(log.c_str());
@@ -93,6 +104,7 @@ namespace Application {
 		{
 			Log("Popped image from queue");
 			lastImage = client.GetImages().front();
+			lastImage = lastImage.Resize(720);
 			client.GetImages().pop();
 		}
 
@@ -126,7 +138,7 @@ namespace Application {
 	}
 
 	void Close(){
-		server.Close();
-		client.Disconnect();
+		server.Finish();
+		client.Finish();
 	}
 }

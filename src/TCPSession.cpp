@@ -86,6 +86,7 @@ void TCPSession::Finish()
     header.seq = mySeq;
     header.SetFlagFIN(true);
     socket.SendPacket({header, ""}, destIP);
+    socket.Close();
 }
 
 bool TCPSession::IsConnected()

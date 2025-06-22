@@ -80,6 +80,7 @@ int Socket::SendPacket(TCPPacket tcpPacket, IPAddress destIP) const
         Application::Log("Sending failed: " + Utils::GetSocketErrorString());
         return 1;
     }
+
     // if (bytesSent - 40 <= 30)
     //     Application::Log("Sent packet: " + Utils::PacketToString(ipHeader, tcpPacket.header, tcpPacket.data) + " " + to_string(bytesSent) + " bytes");
     // else
