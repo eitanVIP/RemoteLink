@@ -104,9 +104,9 @@ namespace Application {
 
 		if (!client.GetImages().empty())
 		{
-			Log("Popped image from queue");
 			lastImage = client.GetImages().front();
 			client.GetImages().pop();
+			Log("Popped image from queue");
 
 			ImVec2 windowSize = ImGui::GetContentRegionAvail();
 			// lastImage.Resize(&lastImage, windowSize.x);

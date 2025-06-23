@@ -130,6 +130,7 @@ void Client::OnDataReceived(string data)
 
             expectedImageSize = 0;
             imageBytesReceived = 0;
+            imageData = "";
             // expectedImageWidth = 0;
             // expectedImageHeight = 0;
         }
